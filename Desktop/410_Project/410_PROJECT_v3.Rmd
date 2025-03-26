@@ -21,18 +21,7 @@ library(parallel)
 setwd("/Users/Bendasilva/Desktop/410_Project")
 alzData<-read.csv("alzheimers_prediction_Dataset.csv",header = TRUE,sep=",")
 ## The conversion
-alzData[sapply(alzData, is.character)] <- lapply(alzData[sapply(alzData, is.character)], 
-                                       as.factor)
-# Order matters to some of the categorical variables
-alzData$Alcohol.Consumption <- factor(alzData$Alcohol.Consumption, order = TRUE, 
-                                    levels=c("Never","Occasionally","Regularly"))
-alzData$Smoking.Status <- factor(alzData$Smoking.Status, order = TRUE, 
-                                    levels=c("Never","Former","Current"))
-
-alzData[sapply(alzData, is.numeric)] <- lapply(alzData[sapply(alzData, is.numeric)],as.numeric)
-```
-
-```{r,include=FALSE}
+# Step 1: Rename columns to match the simplified names
 colnames(alzData)[colnames(alzData) == "Family.History.of.Alzheimer.s"] <- "FamilyHistory"
 colnames(alzData)[colnames(alzData) == "Genetic.Risk.Factor..APOE.ε4.allele."] <- "GeneticRisk"
 colnames(alzData)[colnames(alzData) == "Alzheimer.s.Diagnosis"] <- "AlzheimerDiagnosis"
@@ -53,17 +42,58 @@ colnames(alzData)[colnames(alzData) == "Employment.Status"] <- "EmploymentStatus
 colnames(alzData)[colnames(alzData) == "Income.Level"] <- "IncomeLevel"
 colnames(alzData)[colnames(alzData) == "Urban.vs.Rural.Living"] <- "UrbanvsRuralLiving"
 
+# Step 2: Update factor_vars list to use the new column names
+factor_vars <- c("Country", "Gender", "PhysicalActivityLevel", "SmokingStatus",
+                 "AlcoholConsumption", "Diabetes", "Hypertension", "CholesterolLevel", 
+                 "FamilyHistory", "DepressionLevel", "SleepQuality", "DietaryHabits", 
+                 "AirPollutionExposure", "EmploymentStatus", "MaritalStatus", 
+                 "GeneticRisk", "SocialEngagementLevel", "IncomeLevel", "StressLevels", 
+                 "UrbanvsRuralLiving", "AlzheimerDiagnosis")
+
+# Step 3: Check if all factor variables exist in the data
+missing_columns <- setdiff(factor_vars, colnames(alzData))
+if(length(missing_columns) > 0) {
+  stop(paste("Missing columns:", paste(missing_columns, collapse = ", ")))
+}
+
+# Step 4: Convert the specified columns to factors (after renaming)
+alzData[factor_vars] <- lapply(alzData[factor_vars], as.factor)
+
+# Step 5: Convert numeric columns to numeric (ensure you're using the correct column names)
+num_vars <- c("Age", "EducationLevel", "BMI", "CognitiveTestScore")  # Updated names
+alzData[num_vars] <- lapply(alzData[num_vars], as.numeric)
+
+# Step 6: Create squared terms (with the updated names)
+alzData$Age2 <- alzData$Age^2
+alzData$BMI2 <- alzData$BMI^2
+alzData$CognitiveTestScore2 <- alzData$CognitiveTestScore^2
+alzData$EducationLevel2 <- alzData$EducationLevel^2
+
+# Step 7: Handle categorical variables and factor conversion for categorical columns
+alzData[sapply(alzData, is.character)] <- lapply(alzData[sapply(alzData, is.character)], as.factor)
+
+# Order matters for some categorical variables
+alzData$AlcoholConsumption <- factor(alzData$AlcoholConsumption, order = TRUE, levels = c("Never", "Occasionally", "Regularly"))
+alzData$SmokingStatus <- factor(alzData$SmokingStatus, order = TRUE, levels = c("Never", "Former", "Current"))
+
+# Ensure that numeric columns are converted to numeric
+alzData[sapply(alzData, is.numeric)] <- lapply(alzData[sapply(alzData, is.numeric)], as.numeric)
+
+
 ```
 
-```{r echo=FALSE, fig.width=3.5, ,fig.height=3.5}
+## Simple findings from data:
+
+
+```{r simple plot,echo=FALSE, fig.width=3.5, ,fig.height=3.5,fig.show='hold'}
 plot(alzData$AlzheimerDiagnosis,main="Diagnosis variable proportion")
+summary(alzData)
 ```
 
 ### First, we identify what variables may have a significant relationship with a positive (or negative) alzheimer's diagnosis:
 
 
-```{r}
-
+```{r log_model_1,include=FALSE}
 # Logistic Regression model on all variables
 
 alz_logit <- glm(AlzheimerDiagnosis~ .
@@ -71,6 +101,37 @@ alz_logit <- glm(AlzheimerDiagnosis~ .
                   ,family = binomial)
 sum(vif(alz_logit) >= 5) #Check if any vifs are >= 5
 summary(alz_logit)
+```
+```{r plotlogbad}
+# Predict the probabilities
+predictions <- predict(alz_logit, type = "response", se.fit = TRUE)
+
+# Calculate the confidence interval for predictions (95% confidence level)
+conf_int_lower <- predictions$fit - 1.96 * predictions$se.fit
+conf_int_upper <- predictions$fit + 1.96 * predictions$se.fit
+
+# Create a data frame with the actual data and the predicted values
+prediction_df <- data.frame(
+  Actual = alzData$AlzheimerDiagnosis,
+  Predicted = predictions$fit,
+  ConfIntLower = conf_int_lower,
+  ConfIntUpper = conf_int_upper
+)
+
+# Plot the predicted probabilities with confidence bands
+ggplot(prediction_df, aes(x = Predicted, y = Actual)) +
+  geom_point(aes(color = Actual), alpha = 0.5) +
+  geom_ribbon(aes(ymin = ConfIntLower, ymax = ConfIntUpper), fill = "blue", alpha = 0.2) +
+  theme_minimal() +
+  labs(title = "Logistic Regression Model Predictions with Confidence Bands",
+       x = "Predicted Probability",
+       y = "Actual Diagnosis (0 or 1)") +
+  theme(legend.position = "none")
+
+# Display AIC of the model
+AIC(alz_logit)
+
+
 ```
 
 ### Findings from full logistic model:
@@ -82,30 +143,28 @@ This model highlights : Country, Age, FamilyHistory, and GeneticRisk as the only
 ### but let's speed that up with some paralel computing:
 
 
-```{r}
+```{r bestsub,include=FALSE}
 #The following call takes about 8 minutes to run!
 #alzBestSubset <- step(alz_logit, direction = "both", trace = F) 
 ```
 
 Using the best subset from the previous models, we create a logistic model using said variables:
 
-```{r}
-alzBestSubset[[1]]
-sum(vif(alzBestSubset) >= 5) # Again, check if any vifs exceed 5
-summary(alzBestSubset)  # Although it appears in in the best subset model, 
+```{r removerural,include=FALSE}
+#alzBestSubset[[1]]
+#sum(vif(alzBestSubset) >= 5) # Again, check if any vifs exceed 5
+#summary(alzBestSubset)  # Although it appears in in the best subset model, 
   # Urban vs Rural Living is really not significant enough to be in there. 
   # Manually remove it.
 
-alzBestSubset <- subset(alzBestSubset, select = -UrbanvsRuralLiving)
+#alzBestSubset <- subset(alzBestSubset, select = -UrbanvsRuralLiving)
   
   #PROF JOHN THINKS: maybe try fixing all but one variable and see the effects of the changing variable (how to do this?)
 ```
 
 # Logistic Regression model on genetic risk and family history and their interaction
 
-```{r}
-
-
+```{r better_log, echo=FALSE}
 alz_logit2 <- glm(AlzheimerDiagnosis~ 
                   FamilyHistory+GeneticRisk
                   +FamilyHistory*GeneticRisk
@@ -113,25 +172,77 @@ alz_logit2 <- glm(AlzheimerDiagnosis~
                   ,family = binomial)
 summary(alz_logit2)
 ```
+
+```{r betterlog_plot, echo=FALSE}
+# Predict the probabilities for the new model
+predictions2 <- predict(alz_logit2, type = "response", se.fit = TRUE)
+
+# Calculate the confidence interval for predictions (95% confidence level)
+conf_int_lower2 <- predictions2$fit - 1.96 * predictions2$se.fit
+conf_int_upper2 <- predictions2$fit + 1.96 * predictions2$se.fit
+
+# Create a data frame with the actual data and the predicted values for the second model
+prediction_df2 <- data.frame(
+  Actual = alzData$AlzheimerDiagnosis,
+  Predicted = predictions2$fit,
+  ConfIntLower = conf_int_lower2,
+  ConfIntUpper = conf_int_upper2
+)
+
+# Plot the predicted probabilities with confidence bands for the second model
+ggplot(prediction_df2, aes(x = Predicted, y = Actual)) +
+  geom_point(aes(color = Actual), alpha = 0.5) +
+  geom_ribbon(aes(ymin = ConfIntLower, ymax = ConfIntUpper), fill = "blue", alpha = 0.2) +
+  theme_minimal() +
+  labs(title = "Logistic Regression Model 2 Predictions with Confidence Bands",
+       x = "Predicted Probability",
+       y = "Actual Diagnosis (0 or 1)") +
+  theme(legend.position = "none")
+
+# Display AIC of the second model
+AIC(alz_logit2)
+```
+
+
 #### The interaction term is not significant.
 
 # MLR model below:
 
-```{r}
-alz_resp <- as.numeric(alzData$AlzheimerDiagnosis)
-alz_logitlm <- lm(alz_resp~ 
+```{r MLR, echo=FALSE}
+alz_logitlm <- lm(AlzheimerDiagnosis~ 
                   FamilyHistory+GeneticRisk
                   +FamilyHistory*GeneticRisk
                   ,data = alzData
                   )
-summary(alz_logitlm)
-plot(alz_logitlm)
+#summary(alz_logitlm)
+#plot(alz_logitlm)
 
+# Get predictions from the linear regression model
+predictions_lm <- predict(alz_logitlm)
+
+# Create a data frame with the actual data and predicted values for plotting
+prediction_df_lm <- data.frame(
+  Actual = alzData$AlzheimerDiagnosis,
+  Predicted = predictions_lm
+)
+
+# Plot actual vs predicted values for the linear model
+ggplot(prediction_df_lm, aes(x = Predicted, y = Actual)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  theme_minimal() +
+  labs(title = "Linear Regression Model: Predicted vs Actual Values",
+       x = "Predicted Values", 
+       y = "Actual Values") +
+  theme(legend.position = "none")
+
+# Get AIC for the linear regression model
+AIC(alz_logitlm)
 ```
 
 So digging into predictors individually, we look at ages relationship with the aggregate of "yes" diagnosis:
 
-```{r}
+```{r AGE_diagnosis_plot, echo=FALSE}
 # Count the number of 'Yes' diagnoses and total samples per age
 alzData_countage <- alzData %>%
   group_by(Age) %>%
@@ -152,7 +263,7 @@ ggplot(alzData_countage, aes(x = Age)) +
 ```
 We can find this almost step wise trend relating to total diagnosis's counted for each age group (50-65, 65-75,75-100)
 
-```{r}
+```{r step-function,, fig.height=3.5, fig.width=3.5,fig.show='hold',echo=FALSE}
 table(cut(alzData_countage$Age, breaks = c(min(alzData_countage$Age), 65, 75, max(alzData_countage$Age))))
 alzData_countage$Age_Cut <- cut(alzData_countage$Age, breaks = c(min(alzData_countage$Age), 65, 75, max(alzData_countage$Age)))
 fit_step <- lm(Yes_Count ~ Age_Cut, data = alzData_countage)
@@ -190,7 +301,7 @@ plot(fit_step)
 
 50-65, 65-75,75-100
 
-```{r}
+```{r Bspline, fig.height=3.5, fig.width=3.5,fig.show='hold', echo=FALSE}
 # spline model
 bsplineProj<-lm(alzData_countage$Yes_Count~bs(alzData_countage$Age,knots=c( 65,75),degree=1),data=alzData_countage)
 
@@ -228,7 +339,7 @@ plot(bsplineProjDeg3)
 ```
 
 
-```{r}
+```{r ANOVA, echo=FALSE}
 # Create age categories
 alzData <- alzData %>%
   mutate(AgeCategory = case_when(
@@ -266,7 +377,7 @@ ggplot(alzData_avg, aes(x = AgeCategory, y = diagnosis_rate, color = Country, gr
 
 ```
 
-```{r}
+```{r All Countries plot, echo=FALSE}
 # Step 1: Calculate the diagnosis rate for each combination of Country and Age Category
 alzData_avg <- alzData %>%
   group_by(Country, AgeCategory) %>%
@@ -301,41 +412,16 @@ ggplot(alzData_top_bottom, aes(x = AgeCategory, y = diagnosis_rate, color = Coun
 
 ## Quadratic and log models:
 
-```{r}
-
-# Updated factor variables based on your column names
-factor_vars <- c("Country", "Gender", "Physical.Activity.Level", "Smoking.Status", 
-                 "Alcohol.Consumption", "Diabetes", "Hypertension", "Cholesterol.Level", 
-                 "Family.History.of.Alzheimer.s", "Depression.Level", "Sleep.Quality", 
-                 "Dietary.Habits", "Air.Pollution.Exposure", "Employment.Status", 
-                 "Marital.Status", "Genetic.Risk.Factor..APOE.ε4.allele.", 
-                 "Social.Engagement.Level", "Income.Level", "Stress.Levels", 
-                 "Urban.vs.Rural.Living", "Alzheimer.s.Diagnosis")
-
-# Convert specified columns to factors
-alzData[factor_vars] <- lapply(alzData[factor_vars], as.factor)
-
-# Updated numeric variables based on your column names
-num_vars <- c("Age", "Education.Level", "BMI", "Cognitive.Test.Score")
-
-# Convert specified columns to numeric
-alzData[num_vars] <- lapply(alzData[num_vars], as.numeric)
-
-# Create squared terms
-alzData$Age2 <- alzData$Age^2
-alzData$BMI2 <- alzData$BMI^2
-alzData$CognitiveTestScore2 <- alzData$Cognitive.Test.Score^2
-alzData$EducationLevel2 <- alzData$Education.Level^2
-
-# Fit the logistic regression model
-model <- glm(Alzheimer.s.Diagnosis ~ Age + Age2 + BMI + BMI2 +  
-             Cognitive.Test.Score + CognitiveTestScore2 + Education.Level + EducationLevel2 +  
-             Physical.Activity.Level + Smoking.Status + Alcohol.Consumption +  
-             Hypertension + Diabetes + Cholesterol.Level + Family.History.of.Alzheimer.s +  
-             Depression.Level + Sleep.Quality + Dietary.Habits +  
-             Air.Pollution.Exposure + Employment.Status + Marital.Status +  
-             Genetic.Risk.Factor..APOE.ε4.allele. + Social.Engagement.Level + Income.Level + Stress.Levels +  
-             Urban.vs.Rural.Living + Gender,  
+```{r Quadratic log}
+# Fit the logistic regression model with squared terms
+model <- glm(AlzheimerDiagnosis ~ Age + Age2 + BMI + BMI2 +  
+             CognitiveTestScore + CognitiveTestScore2 + EducationLevel + EducationLevel2 +  
+             PhysicalActivityLevel + SmokingStatus + AlcoholConsumption +  
+             Hypertension + Diabetes + CholesterolLevel + FamilyHistory +  
+             DepressionLevel + SleepQuality + DietaryHabits +  
+             AirPollutionExposure + EmploymentStatus + MaritalStatus +  
+             GeneticRisk + SocialEngagementLevel + IncomeLevel + StressLevels +  
+             UrbanvsRuralLiving + Gender,  
              family = binomial, data = alzData)
 
 # Display model information
@@ -344,20 +430,49 @@ BIC(model)
 summary(model)
 
 # Logistic regression model without squared terms
-model_logistic <- glm(Alzheimer.s.Diagnosis ~ Age + BMI + Cognitive.Test.Score + Education.Level +  
-                      Physical.Activity.Level + Smoking.Status + Alcohol.Consumption +  
-                      Hypertension + Diabetes + Cholesterol.Level + Family.History.of.Alzheimer.s +  
-                      Depression.Level + Sleep.Quality + Dietary.Habits +  
-                      Air.Pollution.Exposure + Employment.Status + Marital.Status +  
-                      Genetic.Risk.Factor..APOE.ε4.allele. + Social.Engagement.Level + Income.Level + Stress.Levels +  
-                      Urban.vs.Rural.Living + Gender,  
+model_logistic <- glm(AlzheimerDiagnosis ~ Age + BMI + CognitiveTestScore + EducationLevel +  
+                      PhysicalActivityLevel + SmokingStatus + AlcoholConsumption +  
+                      Hypertension + Diabetes + CholesterolLevel + FamilyHistory +  
+                      DepressionLevel + SleepQuality + DietaryHabits +  
+                      AirPollutionExposure + EmploymentStatus + MaritalStatus +  
+                      GeneticRisk + SocialEngagementLevel + IncomeLevel + StressLevels +  
+                      UrbanvsRuralLiving + Gender,  
                       family = binomial, data = alzData)
 
 # Display model information for logistic regression model
 AIC(model_logistic)
 BIC(model_logistic)
 summary(model_logistic)
+
+pred_data <- alzData
+pred_data$Prediction <- predict(model, newdata = pred_data, type = "response")
+
+# Plot the prediction vs Age (example for Age)
+ggplot(pred_data, aes(x = Age, y = Prediction)) +
+  geom_point(aes(color = AlzheimerDiagnosis), alpha = 0.6) + # Points colored by Alzheimer diagnosis
+  geom_smooth(method = "loess", aes(fill = ..se..), alpha = 0.2) + # Confidence bands
+  labs(title = "Predicted Probability of Alzheimer's Diagnosis by Age",
+       x = "Age", y = "Predicted Probability") +
+  theme_minimal()
+
+
 ```
+
+```{r AIC compare}
+# Create an empty data frame to store AIC values
+aic_comparison <- data.frame(Model = character(), AIC = numeric(), stringsAsFactors = FALSE)
+# Add AIC values for each model
+aic_comparison <- rbind(aic_comparison, data.frame(Model = "model", AIC = AIC(model)))
+aic_comparison <- rbind(aic_comparison, data.frame(Model = "model_logistic", AIC = AIC(model_logistic)))
+aic_comparison <- rbind(aic_comparison, data.frame(Model = "alz_logit", AIC = AIC(alz_logit)))
+aic_comparison <- rbind(aic_comparison, data.frame(Model = "alz_logit2", AIC = AIC(alz_logit2)))
+aic_comparison <- rbind(aic_comparison, data.frame(Model = "alz_logitlm", AIC = AIC(alz_logitlm)))
+
+# View the AIC comparison table
+print(aic_comparison)
+```
+
+
 
 Bibliography: 
 
