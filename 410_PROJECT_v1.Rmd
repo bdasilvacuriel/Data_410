@@ -5,12 +5,17 @@ date: "`r Sys.Date()`"
 output: pdf_document
 ---
 
+In this project, we aim to predict the likelihood of Alzheimer's disease diagnosis based on various demographic, health, and behavioral factors. The dataset we are working with contains records of individuals, with variables including age, gender, family history of Alzheimer's, cognitive test scores, lifestyle factors (e.g., smoking, alcohol consumption, physical activity level), and more.
+
+The main objective of this analysis is to identify predictors that significantly influence the chance of being diagnosed with Alzheimer's. We will also explore potential collinearity between predictors, as highly correlated variables can impact the model's performance and interpretation.
+
 ```{r setup, include=FALSE}
 library(mgcv)
 library(dplyr)
 library(ggplot2)
 library(splines)
 library(car)
+library(MASS)
 
 
 setwd("/Users/Bendasilva/Desktop/410_Project")
@@ -47,6 +52,7 @@ colnames(alzData)[colnames(alzData) == "Dietary.Habits"] <- "DietaryHabits"
 colnames(alzData)[colnames(alzData) == "Employment.Status"] <- "EmploymentStatus"
 colnames(alzData)[colnames(alzData) == "Income.Level"] <- "IncomeLevel"
 colnames(alzData)[colnames(alzData) == "Urban.vs.Rural.Living"] <- "UrbanvsRuralLiving"
+
 ```
 
 ```{r echo=FALSE, fig.width=3.5, ,fig.height=3.5}
@@ -140,9 +146,7 @@ ggplot(alzData_countage, aes(x = Age)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
 
 ```
-We can find this almost step wise trend relating to total diagnosis's counted for each age group (50-60,70,80-90)
-
-#TODO add more splines part
+We can find this almost step wise trend relating to total diagnosis's counted for each age group (50-65, 65-75,75-100)
 
 ```{r}
 table(cut(alzData_countage$Age, breaks = c(min(alzData_countage$Age), 65, 75, max(alzData_countage$Age))))
@@ -180,6 +184,8 @@ plot(fit_step)
 
 ```
 
+50-65, 65-75,75-100
+
 ```{r}
 # spline model
 bsplineProj<-lm(alzData_countage$Yes_Count~bs(alzData_countage$Age,knots=c( 65,75),degree=1),data=alzData_countage)
@@ -214,6 +220,77 @@ with(data.frame(alzData_countage$Age, y_fit), lines(alzData_countage$Age, y_fit1
 with(data.frame(alzData_countage$Age, upper_pred1), lines(alzData_countage$Age, upper_pred1, col="red", lty=2))
 with(data.frame(alzData_countage$Age, lower_pred1), lines(alzData_countage$Age, lower_pred1, col="red", lty=2))
 plot(bsplineProjDeg3)
+
+```
+
+
+```{r}
+# Create age categories
+alzData <- alzData %>%
+  mutate(AgeCategory = case_when(
+    Age >= 50 & Age <= 65 ~ "50-65",
+    Age > 65 & Age <= 75 ~ "65-75",
+    Age > 75 & Age <= 100 ~ "75-100",
+    TRUE ~ "Other"
+  ))
+
+# Calculate diagnosis rate (proportion of Yes diagnoses)
+alzData <- alzData %>%
+  mutate(diagnosis_rate = ifelse(AlzheimerDiagnosis == "Yes", 1, 0))
+
+# Perform ANOVA for diagnosis rate by Country, Gender, FamilyHistory, and AgeCategory
+anova_result <- aov(diagnosis_rate ~ Country + Gender + FamilyHistory + AgeCategory, data = alzData)
+
+# Summarize the ANOVA result
+summary(anova_result)
+
+# Calculate the average diagnosis rate for each combination of Country and Age Category
+alzData_avg <- alzData %>%
+  group_by(Country, AgeCategory) %>%
+  summarise(diagnosis_rate = mean(AlzheimerDiagnosis == "Yes", na.rm = TRUE)) %>%
+  ungroup()  # Ensure that we don't retain grouping in the data
+
+# Now, create the interaction plot
+ggplot(alzData_avg, aes(x = AgeCategory, y = diagnosis_rate, color = Country, group = Country)) +
+  geom_point(size = 3) +  # Add points for each diagnosis rate
+  geom_line() +  # Add a line to show the trend within each country
+  labs(title = "Diagnosis Rate by Age Category for Top 5 Countries",
+       x = "Age Category", 
+       y = "Average Diagnosis Rate") +
+  theme_minimal() +  # Clean plot theme
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
+
+```
+
+```{r}
+# Step 1: Calculate the diagnosis rate for each combination of Country and Age Category
+alzData_avg <- alzData %>%
+  group_by(Country, AgeCategory) %>%
+  summarise(diagnosis_rate = mean(AlzheimerDiagnosis == "Yes", na.rm = TRUE)) %>%
+  ungroup()
+
+# Step 2: Identify the top and bottom countries based on the average diagnosis rate
+country_avg_rates <- alzData_avg %>%
+  group_by(Country) %>%
+  summarise(avg_diagnosis_rate = mean(diagnosis_rate, na.rm = TRUE)) %>%
+  arrange(desc(avg_diagnosis_rate))
+
+# Get top and bottom countries
+top_country <- country_avg_rates$Country[1]
+bottom_country <- country_avg_rates$Country[nrow(country_avg_rates)]
+
+# Step 3: Filter the data for only the top and bottom countries
+alzData_top_bottom <- alzData_avg %>%
+  filter(Country %in% c(top_country, bottom_country))
+
+# Step 4: Create the plot for the top and bottom countries
+ggplot(alzData_top_bottom, aes(x = AgeCategory, y = diagnosis_rate, color = Country, group = Country)) +
+  geom_point(size = 3) +  # Add points for each diagnosis rate
+  geom_line() +  # Add a line to show the trend within each country
+  labs(title = "Diagnosis Rate by Age Category for Top and Bottom Country",
+       x = "Age Category", y = "Average Diagnosis Rate") +
+  theme_minimal() +  # Clean plot theme
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
 
 ```
 
