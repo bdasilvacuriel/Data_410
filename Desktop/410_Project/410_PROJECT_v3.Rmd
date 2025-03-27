@@ -5,6 +5,9 @@ date: "`r Sys.Date()`"
 output: pdf_document
 ---
 
+
+#TODO caching chunks, formatting, remove MLR
+
 In this project, we aim to predict the likelihood of Alzheimer's disease diagnosis based on various demographic, health, and behavioral factors. The dataset we are working with contains records of individuals, with variables including age, gender, family history of Alzheimer's, cognitive test scores, lifestyle factors (e.g., smoking, alcohol consumption, physical activity level), and more.
 
 The main objective of this analysis is to identify predictors that significantly influence the chance of being diagnosed with Alzheimer's. We will also explore potential collinearity between predictors, as highly correlated variables can impact the model's performance and interpretation.
@@ -17,6 +20,31 @@ library(splines)
 library(car)
 library(MASS)
 library(parallel)
+library(knitr)
+library(tidyr)
+
+# Custom summary function
+custom_summary <- function(x, var_name) {
+  if (is.numeric(x)) {
+    tibble(
+      Variable = var_name,
+      Statistic = c("Min", "Q1", "Median", "Mean", "Q3", "Max", "SD", "NonMissing", "Total"),
+      Value = c(min(x, na.rm = TRUE), quantile(x, 0.25, na.rm = TRUE), 
+                median(x, na.rm = TRUE), mean(x, na.rm = TRUE), 
+                quantile(x, 0.75, na.rm = TRUE), max(x, na.rm = TRUE), 
+                sd(x, na.rm = TRUE), sum(!is.na(x)), length(x))
+    )
+  } else {
+    level_counts <- as.data.frame(table(x, useNA = "no"))
+    colnames(level_counts) <- c("Level", "Count")
+
+    total_row <- tibble(Level = "Total", Count = length(x))
+    missing_row <- tibble(Level = "Missing", Count = sum(is.na(x)))
+
+    bind_rows(level_counts, total_row, missing_row) %>%
+      mutate(Variable = var_name)
+  }
+}
 
 setwd("/Users/Bendasilva/Desktop/410_Project")
 alzData<-read.csv("alzheimers_prediction_Dataset.csv",header = TRUE,sep=",")
@@ -71,15 +99,11 @@ alzData$EducationLevel2 <- alzData$EducationLevel^2
 
 # Step 7: Handle categorical variables and factor conversion for categorical columns
 alzData[sapply(alzData, is.character)] <- lapply(alzData[sapply(alzData, is.character)], as.factor)
-
 # Order matters for some categorical variables
 alzData$AlcoholConsumption <- factor(alzData$AlcoholConsumption, order = TRUE, levels = c("Never", "Occasionally", "Regularly"))
 alzData$SmokingStatus <- factor(alzData$SmokingStatus, order = TRUE, levels = c("Never", "Former", "Current"))
-
 # Ensure that numeric columns are converted to numeric
 alzData[sapply(alzData, is.numeric)] <- lapply(alzData[sapply(alzData, is.numeric)], as.numeric)
-
-
 ```
 
 ## Simple findings from data:
@@ -87,29 +111,35 @@ alzData[sapply(alzData, is.numeric)] <- lapply(alzData[sapply(alzData, is.numeri
 
 ```{r simple plot,echo=FALSE, fig.width=3.5, ,fig.height=3.5,fig.show='hold'}
 plot(alzData$AlzheimerDiagnosis,main="Diagnosis variable proportion")
-summary(alzData)
+# Separate numeric and categorical variables
+numeric_vars <- alzData[, sapply(alzData, is.numeric)]
+
+# Apply function to numeric and categorical variables
+numeric_summary <- bind_rows(lapply(names(numeric_vars), function(var) custom_summary(numeric_vars[[var]], var)))
+# Combine and print as Markdown table
+final_summary <- numeric_summary
+kable(final_summary, caption = "Summary Statistics for alzData", format = "markdown")
+
 ```
+
 
 ### First, we identify what variables may have a significant relationship with a positive (or negative) alzheimer's diagnosis:
 
 
 ```{r log_model_1,include=FALSE}
 # Logistic Regression model on all variables
-
 alz_logit <- glm(AlzheimerDiagnosis~ .
                   ,data = alzData
                   ,family = binomial)
 sum(vif(alz_logit) >= 5) #Check if any vifs are >= 5
-summary(alz_logit)
+#summary(alz_logit)
 ```
-```{r plotlogbad}
+```{r plotlogbad, echo=FALSE}
 # Predict the probabilities
 predictions <- predict(alz_logit, type = "response", se.fit = TRUE)
-
 # Calculate the confidence interval for predictions (95% confidence level)
 conf_int_lower <- predictions$fit - 1.96 * predictions$se.fit
 conf_int_upper <- predictions$fit + 1.96 * predictions$se.fit
-
 # Create a data frame with the actual data and the predicted values
 prediction_df <- data.frame(
   Actual = alzData$AlzheimerDiagnosis,
@@ -117,7 +147,6 @@ prediction_df <- data.frame(
   ConfIntLower = conf_int_lower,
   ConfIntUpper = conf_int_upper
 )
-
 # Plot the predicted probabilities with confidence bands
 ggplot(prediction_df, aes(x = Predicted, y = Actual)) +
   geom_point(aes(color = Actual), alpha = 0.5) +
@@ -127,11 +156,8 @@ ggplot(prediction_df, aes(x = Predicted, y = Actual)) +
        x = "Predicted Probability",
        y = "Actual Diagnosis (0 or 1)") +
   theme(legend.position = "none")
-
 # Display AIC of the model
 AIC(alz_logit)
-
-
 ```
 
 ### Findings from full logistic model:
@@ -141,7 +167,6 @@ This model highlights : Country, Age, FamilyHistory, and GeneticRisk as the only
 ### Now well use a stepwise glm to find the "best" subsets of predictors:
 
 ### but let's speed that up with some paralel computing:
-
 
 ```{r bestsub,include=FALSE}
 #The following call takes about 8 minutes to run!
@@ -162,83 +187,8 @@ Using the best subset from the previous models, we create a logistic model using
   #PROF JOHN THINKS: maybe try fixing all but one variable and see the effects of the changing variable (how to do this?)
 ```
 
-# Logistic Regression model on genetic risk and family history and their interaction
-
-```{r better_log, echo=FALSE}
-alz_logit2 <- glm(AlzheimerDiagnosis~ 
-                  FamilyHistory+GeneticRisk
-                  +FamilyHistory*GeneticRisk
-                  ,data = alzData
-                  ,family = binomial)
-summary(alz_logit2)
-```
-
-```{r betterlog_plot, echo=FALSE}
-# Predict the probabilities for the new model
-predictions2 <- predict(alz_logit2, type = "response", se.fit = TRUE)
-
-# Calculate the confidence interval for predictions (95% confidence level)
-conf_int_lower2 <- predictions2$fit - 1.96 * predictions2$se.fit
-conf_int_upper2 <- predictions2$fit + 1.96 * predictions2$se.fit
-
-# Create a data frame with the actual data and the predicted values for the second model
-prediction_df2 <- data.frame(
-  Actual = alzData$AlzheimerDiagnosis,
-  Predicted = predictions2$fit,
-  ConfIntLower = conf_int_lower2,
-  ConfIntUpper = conf_int_upper2
-)
-
-# Plot the predicted probabilities with confidence bands for the second model
-ggplot(prediction_df2, aes(x = Predicted, y = Actual)) +
-  geom_point(aes(color = Actual), alpha = 0.5) +
-  geom_ribbon(aes(ymin = ConfIntLower, ymax = ConfIntUpper), fill = "blue", alpha = 0.2) +
-  theme_minimal() +
-  labs(title = "Logistic Regression Model 2 Predictions with Confidence Bands",
-       x = "Predicted Probability",
-       y = "Actual Diagnosis (0 or 1)") +
-  theme(legend.position = "none")
-
-# Display AIC of the second model
-AIC(alz_logit2)
-```
-
-
 #### The interaction term is not significant.
 
-# MLR model below:
-
-```{r MLR, echo=FALSE}
-alz_logitlm <- lm(AlzheimerDiagnosis~ 
-                  FamilyHistory+GeneticRisk
-                  +FamilyHistory*GeneticRisk
-                  ,data = alzData
-                  )
-#summary(alz_logitlm)
-#plot(alz_logitlm)
-
-# Get predictions from the linear regression model
-predictions_lm <- predict(alz_logitlm)
-
-# Create a data frame with the actual data and predicted values for plotting
-prediction_df_lm <- data.frame(
-  Actual = alzData$AlzheimerDiagnosis,
-  Predicted = predictions_lm
-)
-
-# Plot actual vs predicted values for the linear model
-ggplot(prediction_df_lm, aes(x = Predicted, y = Actual)) +
-  geom_point(color = "blue", alpha = 0.5) +
-  geom_smooth(method = "lm", color = "red", se = FALSE) +
-  theme_minimal() +
-  labs(title = "Linear Regression Model: Predicted vs Actual Values",
-       x = "Predicted Values", 
-       y = "Actual Values") +
-  theme(legend.position = "none")
-
-# Get AIC for the linear regression model
-AIC(alz_logitlm)
-```
 
 So digging into predictors individually, we look at ages relationship with the aggregate of "yes" diagnosis:
 
@@ -259,7 +209,6 @@ ggplot(alzData_countage, aes(x = Age)) +
        y = "Count / Sample Size") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
-
 ```
 We can find this almost step wise trend relating to total diagnosis's counted for each age group (50-65, 65-75,75-100)
 
@@ -267,19 +216,14 @@ We can find this almost step wise trend relating to total diagnosis's counted fo
 table(cut(alzData_countage$Age, breaks = c(min(alzData_countage$Age), 65, 75, max(alzData_countage$Age))))
 alzData_countage$Age_Cut <- cut(alzData_countage$Age, breaks = c(min(alzData_countage$Age), 65, 75, max(alzData_countage$Age)))
 fit_step <- lm(Yes_Count ~ Age_Cut, data = alzData_countage)
-
 print(coef(summary(fit_step)))
-
 agelims<-range(alzData_countage$Age)
 age_grid = seq(from = min(agelims), to = max(agelims))
-
 # Predict the value of the generated ages, returning the standard error using se = TRUE
 preds = predict(fit_step, newdata = alzData_countage, se = TRUE)
-
 # Compute error bands (2*SE)
 se_bands = cbind("upper" = preds$fit+2*preds$se.fit, 
                  "lower" = preds$fit-2*preds$se.fit)
-
 # Plot
 ggplot() +
   geom_point(data = alzData_countage, aes(x = Age, y = Yes_Count)) +
@@ -290,57 +234,38 @@ ggplot() +
               alpha = 0.3) +
   xlim(agelims) +
   labs(title = "Step Function")
-
 hist(residuals(fit_step), main = "Histogram of Residuals", breaks = 20)
-
 qqnorm(residuals(fit_step))
 qqline(residuals(fit_step), col = "red")
-plot(fit_step)
-
+#plot(fit_step)
 ```
 
-50-65, 65-75,75-100
+groups: 50-65, 65-75,75-100
 
 ```{r Bspline, fig.height=3.5, fig.width=3.5,fig.show='hold', echo=FALSE}
-# spline model
+# spline model, deg 1 and 3
 bsplineProj<-lm(alzData_countage$Yes_Count~bs(alzData_countage$Age,knots=c( 65,75),degree=1),data=alzData_countage)
-
 bsplineProjDeg3<-lm(alzData_countage$Yes_Count~bs(alzData_countage$Age,knots=c( 65,75),degree=3),data=alzData_countage)
-
-
 plot(alzData_countage$Yes_Count~alzData_countage$Age, data = alzData_countage,pch=16,main="bspline with knots 65 and 75")
-
 pred <- predict(bsplineProj, newdata = data.frame(alzData_countage$Age), interval = "prediction")
-
 y_fit <- pred[, "fit"]
 upper_pred <- pred[, "upr"]
 lower_pred <- pred[, "lwr"]
-
 with(data.frame(alzData_countage$Age, y_fit), lines(alzData_countage$Age, y_fit, col=4, lwd=2))
-
 with(data.frame(alzData_countage$Age, upper_pred), lines(alzData_countage$Age, upper_pred, col="red", lty=2))
 with(data.frame(alzData_countage$Age, lower_pred), lines(alzData_countage$Age, lower_pred, col="red", lty=2))
-
-##start
 plot(alzData_countage$Yes_Count~alzData_countage$Age, data = alzData_countage,pch=16,main="bspline with knots 65 and 75, deg 3")
-
 pred1 <- predict(bsplineProjDeg3, newdata = data.frame(alzData_countage$Age), interval = "prediction")
-
 y_fit1 <- pred1[, "fit"]
 upper_pred1 <- pred1[, "upr"]
 lower_pred1 <- pred1[, "lwr"]
-
 with(data.frame(alzData_countage$Age, y_fit), lines(alzData_countage$Age, y_fit1, col=4, lwd=2))
-
 with(data.frame(alzData_countage$Age, upper_pred1), lines(alzData_countage$Age, upper_pred1, col="red", lty=2))
 with(data.frame(alzData_countage$Age, lower_pred1), lines(alzData_countage$Age, lower_pred1, col="red", lty=2))
 plot(bsplineProjDeg3)
-
 ```
 
-
 ```{r ANOVA, echo=FALSE}
-# Create age categories
 alzData <- alzData %>%
   mutate(AgeCategory = case_when(
     Age >= 50 & Age <= 65 ~ "50-65",
@@ -348,37 +273,39 @@ alzData <- alzData %>%
     Age > 75 & Age <= 100 ~ "75-100",
     TRUE ~ "Other"
   ))
-
 # Calculate diagnosis rate (proportion of Yes diagnoses)
 alzData <- alzData %>%
   mutate(diagnosis_rate = ifelse(AlzheimerDiagnosis == "Yes", 1, 0))
-
 # Perform ANOVA for diagnosis rate by Country, Gender, FamilyHistory, and AgeCategory
 anova_result <- aov(diagnosis_rate ~ Country + Gender + FamilyHistory + AgeCategory, data = alzData)
-
 # Summarize the ANOVA result
-summary(anova_result)
+print(summary(anova_result))
 
+```
+
+```{r Plot_country_prop, echo=FALSE}
 # Calculate the average diagnosis rate for each combination of Country and Age Category
 alzData_avg <- alzData %>%
   group_by(Country, AgeCategory) %>%
   summarise(diagnosis_rate = mean(AlzheimerDiagnosis == "Yes", na.rm = TRUE)) %>%
   ungroup()  # Ensure that we don't retain grouping in the data
-
 # Now, create the interaction plot
 ggplot(alzData_avg, aes(x = AgeCategory, y = diagnosis_rate, color = Country, group = Country)) +
   geom_point(size = 3) +  # Add points for each diagnosis rate
   geom_line() +  # Add a line to show the trend within each country
-  labs(title = "Diagnosis Rate by Age Category for Top 5 Countries",
+  labs(title = "Diagnosis Rate by Age Category for all Countries",
        x = "Age Category", 
        y = "Average Diagnosis Rate") +
   theme_minimal() +  # Clean plot theme
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
-
 ```
+
+
+Now to simplify we display only the top and bottom averages overall.
 
 ```{r All Countries plot, echo=FALSE}
 # Step 1: Calculate the diagnosis rate for each combination of Country and Age Category
+plot(x=alzData$Country,y=alzData$AlzheimerDiagnosis)
 alzData_avg <- alzData %>%
   group_by(Country, AgeCategory) %>%
   summarise(diagnosis_rate = mean(AlzheimerDiagnosis == "Yes", na.rm = TRUE)) %>%
@@ -409,10 +336,28 @@ ggplot(alzData_top_bottom, aes(x = AgeCategory, y = diagnosis_rate, color = Coun
 
 ```
 
+```{r Plotofimportant,echo=FALSE}
+plot(x=alzData$FamilyHistory,y=alzData$AlzheimerDiagnosis)
+ggplot(alzData, aes(x = FamilyHistory, fill = as.factor(AlzheimerDiagnosis))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Alzheimer Diagnosis by Family History",
+       x = "Family History of Alzheimer's",
+       y = "Count",
+       fill = "Alzheimer Diagnosis") +
+  theme_minimal() +
+  scale_fill_manual(values = c("No" = "lightblue", "Yes" = "lightcoral"))
+# Create a contingency table
+alz_table <- table(alzData$FamilyHistory, alzData$AlzheimerDiagnosis)
+# Perform Chi-Square Test
+chi_test <- chisq.test(alz_table)
+# Print results
+print(chi_test)
+```
+
 
 ## Quadratic and log models:
 
-```{r Quadratic log}
+```{r Quadratic log, echo=FALSE}
 # Fit the logistic regression model with squared terms
 model <- glm(AlzheimerDiagnosis ~ Age + Age2 + BMI + BMI2 +  
              CognitiveTestScore + CognitiveTestScore2 + EducationLevel + EducationLevel2 +  
@@ -423,12 +368,11 @@ model <- glm(AlzheimerDiagnosis ~ Age + Age2 + BMI + BMI2 +
              GeneticRisk + SocialEngagementLevel + IncomeLevel + StressLevels +  
              UrbanvsRuralLiving + Gender,  
              family = binomial, data = alzData)
-
+#cutting some of the predictors, find a better AIC
 # Display model information
-AIC(model)
-BIC(model)
-summary(model)
-
+#AIC(model)
+#BIC(model)
+#summary(model)
 # Logistic regression model without squared terms
 model_logistic <- glm(AlzheimerDiagnosis ~ Age + BMI + CognitiveTestScore + EducationLevel +  
                       PhysicalActivityLevel + SmokingStatus + AlcoholConsumption +  
@@ -438,15 +382,16 @@ model_logistic <- glm(AlzheimerDiagnosis ~ Age + BMI + CognitiveTestScore + Educ
                       GeneticRisk + SocialEngagementLevel + IncomeLevel + StressLevels +  
                       UrbanvsRuralLiving + Gender,  
                       family = binomial, data = alzData)
-
+#cutting some of the predictors, find a better AIC
 # Display model information for logistic regression model
-AIC(model_logistic)
-BIC(model_logistic)
-summary(model_logistic)
+#AIC(model_logistic)
+#BIC(model_logistic)
+#summary(model_logistic)
+```
 
+```{r quadplot, echo=FALSE, message=FALSE, warning=FALSE}
 pred_data <- alzData
 pred_data$Prediction <- predict(model, newdata = pred_data, type = "response")
-
 # Plot the prediction vs Age (example for Age)
 ggplot(pred_data, aes(x = Age, y = Prediction)) +
   geom_point(aes(color = AlzheimerDiagnosis), alpha = 0.6) + # Points colored by Alzheimer diagnosis
@@ -454,27 +399,34 @@ ggplot(pred_data, aes(x = Age, y = Prediction)) +
   labs(title = "Predicted Probability of Alzheimer's Diagnosis by Age",
        x = "Age", y = "Predicted Probability") +
   theme_minimal()
-
-
 ```
 
-```{r AIC compare}
+```{r AIC compare, echo=FALSE}
 # Create an empty data frame to store AIC values
 aic_comparison <- data.frame(Model = character(), AIC = numeric(), stringsAsFactors = FALSE)
 # Add AIC values for each model
 aic_comparison <- rbind(aic_comparison, data.frame(Model = "model", AIC = AIC(model)))
 aic_comparison <- rbind(aic_comparison, data.frame(Model = "model_logistic", AIC = AIC(model_logistic)))
 aic_comparison <- rbind(aic_comparison, data.frame(Model = "alz_logit", AIC = AIC(alz_logit)))
-aic_comparison <- rbind(aic_comparison, data.frame(Model = "alz_logit2", AIC = AIC(alz_logit2)))
-aic_comparison <- rbind(aic_comparison, data.frame(Model = "alz_logitlm", AIC = AIC(alz_logitlm)))
-
 # View the AIC comparison table
 print(aic_comparison)
 ```
 
+```{r}
+#TODO area
+# Create age categories
+#TODO add t-tests for genetic risk and family history
+#TODO look into rate
+#Get ride /format summaries
+#add dylans confusion matrix
+```
 
 
 Bibliography: 
 
-# https://www.science.smith.edu/~jcrouser/SDS293/labs/lab12-r.html
+#### https://www.science.smith.edu/~jcrouser/SDS293/labs/lab12-r.html
+####
+####
+####
+
 
