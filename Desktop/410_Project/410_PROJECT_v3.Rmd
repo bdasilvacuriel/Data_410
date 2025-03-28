@@ -23,28 +23,6 @@ library(parallel)
 library(knitr)
 library(tidyr)
 
-# Custom summary function
-custom_summary <- function(x, var_name) {
-  if (is.numeric(x)) {
-    tibble(
-      Variable = var_name,
-      Statistic = c("Min", "Q1", "Median", "Mean", "Q3", "Max", "SD", "NonMissing", "Total"),
-      Value = c(min(x, na.rm = TRUE), quantile(x, 0.25, na.rm = TRUE), 
-                median(x, na.rm = TRUE), mean(x, na.rm = TRUE), 
-                quantile(x, 0.75, na.rm = TRUE), max(x, na.rm = TRUE), 
-                sd(x, na.rm = TRUE), sum(!is.na(x)), length(x))
-    )
-  } else {
-    level_counts <- as.data.frame(table(x, useNA = "no"))
-    colnames(level_counts) <- c("Level", "Count")
-
-    total_row <- tibble(Level = "Total", Count = length(x))
-    missing_row <- tibble(Level = "Missing", Count = sum(is.na(x)))
-
-    bind_rows(level_counts, total_row, missing_row) %>%
-      mutate(Variable = var_name)
-  }
-}
 
 setwd("/Users/Bendasilva/Desktop/410_Project")
 alzData<-read.csv("alzheimers_prediction_Dataset.csv",header = TRUE,sep=",")
@@ -111,15 +89,7 @@ alzData[sapply(alzData, is.numeric)] <- lapply(alzData[sapply(alzData, is.numeri
 
 ```{r simple plot,echo=FALSE, fig.width=3.5, ,fig.height=3.5,fig.show='hold'}
 plot(alzData$AlzheimerDiagnosis,main="Diagnosis variable proportion")
-# Separate numeric and categorical variables
-numeric_vars <- alzData[, sapply(alzData, is.numeric)]
-
-# Apply function to numeric and categorical variables
-numeric_summary <- bind_rows(lapply(names(numeric_vars), function(var) custom_summary(numeric_vars[[var]], var)))
-# Combine and print as Markdown table
-final_summary <- numeric_summary
-kable(final_summary, caption = "Summary Statistics for alzData", format = "markdown")
-
+summary(alzData)
 ```
 
 
