@@ -12,7 +12,7 @@ bibliography: references.bib
 
 In this project, we aim to predict the likelihood of Alzheimer's disease diagnosis based on various demographic, health, and behavioral factors. The dataset we are working with contains records of individuals, with variables including age, gender, family history of Alzheimer's, cognitive test scores, lifestyle factors (e.g., smoking, alcohol consumption, physical activity level), and more.
 
-The main objective of this analysis is to identify predictors that significantly influence the chance of being diagnosed with Alzheimer's. We will also explore potential collinearity between predictors, as highly correlated variables can impact the model's performance and interpretation.
+The main objective of this analysis is to identify predictors that significantly influence the chance of being diagnosed with Alzheimer's. We will also explore potential multicollinearity between predictors, as highly correlated variables can impact the model's performance and interpretation.
 
 ```{r setup, include=FALSE}
 library(mgcv)
@@ -26,6 +26,7 @@ library(knitr)
 library(tidyr)
 library(boot)
 library(DAAG)
+library(kableExtra)
 library(caret)
 
 #setwd("/Users/Bendasilva/Desktop/410_Project")
@@ -102,7 +103,7 @@ alz_logit_full <- glm(AlzheimerDiagnosis~ .
                   ,family = binomial)
 sum(vif(alz_logit_full) >= 5) #Check if any vifs are >= 5.
 #summary(alz_logit_full)
-full.model.aic <- alz_logit_full$aic
+full_saturated_model.aic <- alz_logit_full$aic
 # Country, Age, FamilyHistory, and GeneticRisk seem to be the only significant variables.
 ```
 
@@ -125,10 +126,10 @@ Here, $R_j^2$ represents the coefficient of determination obtained by regressing
 To find a more parsimonious model, three stepwise variable selection methods are performed – each using the same function "step" from the [@MASS] package. The stepwise algorithm iterates through the variables of the model passed into the function along with the direction and extracts and compares the Akaike's Information Criterion (AIC) for each variable to determine an optimal model fitted by maximum likelihood. This value is ultimately used to compare each model of the dataset to analyze how well a model fits. Mathematically, the AIC in each step in the function is calculated as:
 
 $$
-2n_{par}-2log(\hat{L})
+AIC_j =2n_{par}-2log(\hat{L_j})
 $$
 
-where $n_{par}$ represents the number of parameters in the fitted model. Upon finding an optimal model, that AIC value is recorded in the [@ModelComparison] Table found in the conclusion. For the purposes of finding a parsimonious model, we tested all three directions, namely: "both", "forward", and "backward", as we did not know if they would be identical or not. Results concluded that the three stepwise variable selection directions yield the same model. Because of this, only the "forward" selection model will be referenced going forward, for no other reason than it was the fastest in computation-time.
+where $n_{par}$ represents the number of parameters in the $j^{th}$ fitted model. Upon finding an optimal model, that AIC value is recorded in the [@ModelComparison] Table found in the conclusion. For the purposes of finding a parsimonious model, we tested all three directions, namely: "both", "forward", and "backward", as we did not know if they would yield similar models or not. Results concluded that the three stepwise variable selection directions did result in the same model. Because of this, only the "forward" selection model will be referenced going forward for no other reason than it was the fastest in computation-time.
 
 ```{r Step.fwd, echo=FALSE}
 #| cache: true
@@ -142,45 +143,52 @@ step.fwd.model<- step(alz_logit_int, direction = "forward",
                       trace = F) 
 vif(step.fwd.model) # Check if any vifs exceed 5 in forward selection model. None exceed 2
 summary(step.fwd.model)
+step_fwd_model.aic <- step.fwd.model$aic
 ```
 
 Once again, the VIF function is used to ensure that no multicollinearly was introduced with the reduction of predictor variables. There was no significant VIF values.
 
-The glm model as determined by the stepwise forward selection method suggests that variables: "Country", "Age", "FamilyHistory", "GeneticRisk", and "UrbanvsRuralLiving" variables provide the "best" model. The first four listed make some intuitive sense from our understandings of Alzheimer's Disease, however "UrbanvsRuralLiving" is somewhat strange intuitively. In addition, the algorithm that determined this optimal model included this variable even though it showed a borderline significant p-value of 0.0961 which is not less than 0.05 as is the common practice. To further investigate this anomaly, deviance testing was performed to validate if this variable can be removed without significantly affecting the models fit.
+The glm model as determined by the stepwise forward selection method suggests that variables: "Country", "Age", "FamilyHistory", "GeneticRisk", and "UrbanvsRuralLiving" variables provide the "best" model. The first four listed make some intuitive sense from our understandings of Alzheimer's Disease, however "UrbanvsRuralLiving" is somewhat strange intuitively. In addition, the algorithm that determined this reduced model included this variable even though it showed a borderline significant p-value of 0.0961 which is not less than 0.05 as is the common practice.
 
-*TODO:Introduce deviance testing method. What is it, what does it look like, why I am using it, what are my results.*
+To further investigate this peculiarity, a statistical inference method called chi-squared testing [@INSERT.CLASS.TEXTBOOK.REFERENCE.HERE] was used on the deviances of the models to assess if a variable can be removed without significantly affecting the model fit. To do this, the change in deviance measures the change between the log likelihood of the saturated model (in this case, the saturated model is the optimal model produced by the stepwise forward selection method) and the log likelihood of a reduced model. The reduced model is the same as the saturated model sans one variable. The deviance of each model was calculated for the purpose of showing the differences between a significant change vs. a non-significant change. The difference in deviance for each reduced model against the saturated model is calculated as:
 
-Deviance Test: Compare the best feature selected reduced model to one-variable removed models. If removing a variable results in a very large increase in deviance (and a very small p-value), it suggests that the variable plays an important role in the model fit.
+$$
+D = 2\phi(\ell_{saturated} − \ell_{reduced\ model})
+$$
 
-Results of deviance tests suggest that removing the Urban vs Rural Living variable from the model would not significantly affect the model fit supported by its p-value being 0.096, which is greater than 0.05.
+where $\phi$ is the dispersion parameter. This parameter is taken to be 1 for a binomial family. When deviance is scaled by the dispersion parameter $\phi$ , the scaled deviance follows a $\chi^2$ distribution. The test statistic for the $\chi^2$ distribution is then calculated as:
 
-Conclusions made from test: the best reduced model from feature selection methods could be further simplified without significantly affecting the model.
+$$
+\chi^2=D_{reduced}-D_{saturated}
+$$
 
-```{r Step.fwd.deviance.tests, echo=FALSE}
+If removing a variable results in a large increase in deviance (and a small p-value less than 0.05 to show significance), it suggests that the variable plays an important role in the model fit. If this is not the case, the variable can be removed without significantly affecting the model fit.
+
+```{r Step.fwd.chisquared.tests, echo=FALSE}
 ## Fit reduced models (each with one variable removed)
 
 no_country.model <- glm(AlzheimerDiagnosis ~ 
                           Age + FamilyHistory + GeneticRisk + UrbanvsRuralLiving, 
-                        data = alzData, family = binomial)
+                        data = alzData, family = binomial(link = "logit"))
 
 no_age.model <- glm(AlzheimerDiagnosis ~ 
                       Country + FamilyHistory + GeneticRisk + UrbanvsRuralLiving,
-                    data = alzData, family = binomial)
+                    data = alzData, family = binomial(link = "logit"))
 
 no_famHist.model <- glm(AlzheimerDiagnosis ~ 
                           Country + Age + GeneticRisk + UrbanvsRuralLiving, 
-                        data = alzData, family = binomial)
+                        data = alzData, family = binomial(link = "logit"))
 
 no_genRisk.model <- glm(AlzheimerDiagnosis ~ 
                           Country + Age + FamilyHistory + UrbanvsRuralLiving, 
-                        data = alzData, family = binomial)
+                        data = alzData, family = binomial(link = "logit"))
 
 no_urbanvsRural.model <- glm(AlzheimerDiagnosis ~ 
                           Country + Age + FamilyHistory + GeneticRisk, 
-                        data = alzData, family = binomial)
+                        data = alzData, family = binomial(link = "logit"))
 
 
-## Deviance test: Compare the best feature selected reduced model to one-variable removed models
+## Chi-Squared test: Compare the best feature selected reduced model to one-variable removed models
 ## If removing a variable results in a very large increase in deviance (and a very small p-value), it suggests that the variable plays an important role in the model fit.
 sig.no_country <- pchisq(no_country.model$deviance-step.fwd.model$deviance,
                          df=no_country.model$df.residual-step.fwd.model$df.residual,
@@ -203,23 +211,47 @@ sig.no_urbanvsRural <- pchisq(no_urbanvsRural.model$deviance-step.fwd.model$devi
                          lower.tail = FALSE)
 
 # Create a table of results
-results <- data.frame(
-  `Variable Removed` = c("Country", "Age", "Family History", "Genetic Risk", "Urban vs Rural Living"),
-  `Degree Freedom Difference` = c(no_country.model$df.residual-step.fwd.model$df.residual,
-                             no_age.model$df.residual-step.fwd.model$df.residual,
-                             no_famHist.model$df.residual-step.fwd.model$df.residual,
-                             no_genRisk.model$df.residual-step.fwd.model$df.residual,
-                             no_urbanvsRural.model$df.residual-step.fwd.model$df.residual),
-  `P-value` = c(sig.no_country, sig.no_age, sig.no_famHist, sig.no_genRisk, sig.no_urbanvsRural)
+chi.results <- data.frame(
+  `Variable Removed` = 
+    c("Country",
+      "Age",
+      "Family History",
+      "Genetic Risk",
+      "Urban vs Rural Living"),
+  `Deviance Change` = 
+    c(no_country.model$deviance-step.fwd.model$deviance
+      ,no_age.model$deviance-step.fwd.model$deviance
+      ,no_famHist.model$deviance-step.fwd.model$deviance
+      ,no_genRisk.model$deviance-step.fwd.model$deviance
+      ,no_urbanvsRural.model$deviance-step.fwd.model$deviance),
+  `Degree Freedom Difference` = 
+    c(no_country.model$df.residual-step.fwd.model$df.residual,
+      no_age.model$df.residual-step.fwd.model$df.residual,
+      no_famHist.model$df.residual-step.fwd.model$df.residual,
+      no_genRisk.model$df.residual-step.fwd.model$df.residual,
+      no_urbanvsRural.model$df.residual-step.fwd.model$df.residual),
+  `P-value` = 
+    c(sig.no_country,
+      sig.no_age, 
+      sig.no_famHist, 
+      sig.no_genRisk, 
+      sig.no_urbanvsRural)
 )
 
-#Title = "Significance tests for the reduced model"
-kable(results)
+kable(chi.results, 
+      caption = "Significance Tests for Reduced Models",
+      digits = 8,
+      label = "Chi-Squared Test Results",
+      col.names = c("Variable Removed", "Deviance Change", "DF Difference", "P-value")) %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "responsive"), 
+                full_width = FALSE) %>%
+  column_spec(2, bold = TRUE, color = ifelse(chi.results$Deviance.Change == min(chi.results$Deviance.Change), "red","black")) %>%  # Make "Deviance Change" column bold
+  column_spec(4, bold = TRUE, color = ifelse(chi.results$P.value > 0.05, "red", "black"))  # Highlight insignificant P-values
 ```
 
-Fitting suggested reduced model and exploring it's results.
+The results of $\chi^2$ tests suggested that removing the "UrbanvsRuralLiving" variable from the model would not significantly affect the model fit supported by a small change in deviance and insignificant p-value = 0.096. This test motivated the removal of this variable from the optimal model produced by the stepwise algorithm, further simplifying the model and resulted in the inference that a persons geographical living demographic does not have a significant affect on an Alzheimer's diagnosis.
 
-The Q-Q residuals of this model are skewed to the right. Since the only variable that is not categorical is Age, we fit a GAM model with splines on Age
+A QQ-plot of the residuals of the resulting reduced model allows for the assessment of whether the deviance residuals follow a standard normal distribution. We found that the residuals strongly deviated from the linear normal assumption at the tail-end of the model indicating that the model is not capturing some pattern(s) in the data.
 
 ```{r Reduced.model.check, echo=FALSE}
 ## Fit reduced model
@@ -233,25 +265,23 @@ alz_logit_red.aic
 plot(alz_logit_reduced, which = 2)
 ```
 
-Introduce GAM model with splines method. What is it, what does a general GAM method look like (in latex), might also have to give a blurb about splines and how they fit in GAM models.
-
-Fitting a GAM model and putting splines on Age since it's the only variable that is not categorical. Discuss results.
-
-Splines on Age show high significance according to p-value. Gam check plots shows bimodal residuals, which eliminated the skewness from the previous model
+As there is some non-linear relationship present, a general additive model (GAM) is introduced to smooth this relationship to improve the models' fit. Since "Age" is the only variable in the model that is not categorical, we suspected that this variable may have a non-linear relationship with an Alzheimer's diagnosis. This smoothing is performed by using cubic splines on "Age" instead of the simple linear term. Recall in **[INSERT BENS SPLINE ANALYSIS RESULTS HERE]** where the number of splines used was four, allowed us to infer **[INSERT JUSTIFICATION FOR NUMBER OF SPLINES HERE]**.
 
 ```{r GAM.model, echo=FALSE}
 alz_logit_gam<- gam(AlzheimerDiagnosis~ 
-                   Country+ s(Age, knots = c(65,65,75,75))+ FamilyHistory+ GeneticRisk
+                   Country+ s(Age, k = 6)+ FamilyHistory+ GeneticRisk
+                   ,knots = list(Age = c(65,65,75,75))
                   ,data = alzData
                   ,family = binomial)
 summary(alz_logit_gam)
 # Splines on Age show high significance according to p-value.
 alz_logit_gam.aic <- alz_logit_gam$aic
 alz_logit_gam.aic
-
 gam.check(alz_logit_gam)
 #gam check plots shows bimodal, normal residuals, which eliminated the skewness from the previous model
 ```
+
+By plotting the results of the gam model, a bimodal pattern can be seen, indicating that the residuals have a much stronger linear relationship infering that the GAM model eliminated the skewness from the GLM model.
 
 Introduce log odds method; what is it (show a formula in latex), why are we using it, interpret our results. Cite a textbook.
 
@@ -280,9 +310,9 @@ kable(log_odds_table, caption = "Comparison of Log-Odds Ratios Between Reduced M
 
 Introduce AIC, what is it, what does its formula look like, why is it used and how are we using it.
 
-## In order to compare against Emily's quadratic and interaction models, we will compare AIC's of the different models. Start a table with AIC values of my models. Will add Emily's models and AIC's when we combine everything. We will use this to ultimately determine the best model.
+In order to compare against Emily's quadratic and interaction models, we will compare AIC's of the different models. Start a table with AIC values of my models. Will add Emily's models and AIC's when we combine everything. We will use this to ultimately determine the best model.
 
-## For final report, for each method: include what a method is and if not mentioned in class - a citation from some textbook that the method is found, how it is done (latex of formula or process), reasoning for the method, and discuss the results.
+For final report, for each method: include what a method is and if not mentioned in class - a citation from some textbook that the method is found, how it is done (latex of formula or process), reasoning for the method, and discuss the results.
 
 So digging into predictors individually, we look at ages relationship with the aggregate of "yes" diagnosis:
 
@@ -610,8 +640,6 @@ Bibliography:
 
 #### <https://www.science.smith.edu/~jcrouser/SDS293/labs/lab12-r.html>
 
-<!--# VIF Citation -->
+<!--# VIF Citation --> [@salmerón2018a]
 
-[@salmerón2018a]
-
-[@MASS]
+<!--# GLM Package Citation--> [@MASS]
