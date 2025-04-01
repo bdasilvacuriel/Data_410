@@ -3,8 +3,12 @@ title: "410 Project"
 author: "Ben, Dylan, Emily"
 date: "`r Sys.Date()`"
 output: pdf_document
+bibliography: references.bib
 ---
 
+## Introduction
+
+-   Description of Alzheimers Disease
 
 In this project, we aim to predict the likelihood of Alzheimer's disease diagnosis based on various demographic, health, and behavioral factors. The dataset we are working with contains records of individuals, with variables including age, gender, family history of Alzheimer's, cognitive test scores, lifestyle factors (e.g., smoking, alcohol consumption, physical activity level), and more.
 
@@ -24,8 +28,8 @@ library(boot)
 library(DAAG)
 library(caret)
 
-setwd("/Users/Bendasilva/Desktop/410_Project")
-alzData<-read.csv("alzheimers_prediction_Dataset.csv",header = TRUE,sep=",")
+#setwd("/Users/Bendasilva/Desktop/410_Project")
+alzData<-read.csv("../../Project/alzheimers_prediction_Dataset.csv",header = TRUE,sep=",")
 ## The conversion
 # Step 1: Rename columns to match the simplified names
 colnames(alzData)[colnames(alzData) == "Family.History.of.Alzheimer.s"] <- "FamilyHistory"
@@ -69,13 +73,8 @@ alzData[factor_vars] <- lapply(alzData[factor_vars], as.factor)
 num_vars <- c("Age", "EducationLevel", "BMI", "CognitiveTestScore")  # Updated names
 alzData[num_vars] <- lapply(alzData[num_vars], as.numeric)
 
-# Step 6: Create squared terms (with the updated names)
-alzData$Age2 <- alzData$Age^2
-alzData$BMI2 <- alzData$BMI^2
-alzData$CognitiveTestScore2 <- alzData$CognitiveTestScore^2
-alzData$EducationLevel2 <- alzData$EducationLevel^2
 
-# Step 7: Handle categorical variables and factor conversion for categorical columns
+# Step 6: Handle categorical variables and factor conversion for categorical columns
 alzData[sapply(alzData, is.character)] <- lapply(alzData[sapply(alzData, is.character)], as.factor)
 # Order matters for some categorical variables
 alzData$AlcoholConsumption <- factor(alzData$AlcoholConsumption, order = TRUE, levels = c("Never", "Occasionally", "Regularly"))
@@ -84,23 +83,18 @@ alzData$SmokingStatus <- factor(alzData$SmokingStatus, order = TRUE, levels = c(
 alzData[sapply(alzData, is.numeric)] <- lapply(alzData[sapply(alzData, is.numeric)], as.numeric)
 ```
 
-## Simple findings from data:
+## Exploratory Data Analysis
+
+### Simple findings from data:
 
 ```{r simple plot,echo=FALSE, fig.width=3.5, ,fig.height=3.5,fig.show='hold'}
 plot(alzData$AlzheimerDiagnosis,main="Diagnosis variable proportion")
 summary(alzData)
 ```
 
+## Analysis Methods
 
-### First, we identify what variables may have a significant relationship with a positive (or negative) alzheimer's diagnosis:
-
-Introduce logistic regression method (mentioned in class), briefly explain what it is, what a general model looks like (in latex), and why we chose it.
-
-Started with a saturated model. Discuss saturated model results.
-
-Introduce what VIF is, find a textbook as a citation on this. Interpret VIF results.
-
-```{r Full.Log.Reg, echo=FALSE}
+```{r Full.Log.Reg, include=FALSE}
 # Logistic Regression model on all variables
 
 alz_logit_full <- glm(AlzheimerDiagnosis~ .
@@ -112,13 +106,34 @@ full.model.aic <- alz_logit_full$aic
 # Country, Age, FamilyHistory, and GeneticRisk seem to be the only significant variables.
 ```
 
-Introduce step-wise feature selection methods (both, backward, forward), and explain why we used this method.
+First, we identify what variables may have a significant relationship with a positive (or negative) alzheimer's diagnosis:
 
-Step-wise method of variable selection suggests Country, Age, FamilyHistory, GeneticRisk, and UrbanvsRuralLiving variables provide the "best" model. However, UrbanvsRuralLiving does not appear to be that significant according to the p-value. Deviance testing will be done to see if this variable can be taken out without significantly affecting model performance.
+Utilizing the general linear model regression from the [@MASS] package, a saturated logistic regression model was created to provide benchmark for evaluating the fit for simpler models. The underlying objective is to find the most parsimonious model and identify the variables that explain an Alzheimers Diagnosis.
 
+As many of the variables were converted to factors as a result of them being categorical, the saturated model was 58 predictor variables along with the intercept term. Since there is such a large amount of predictor variables included, we tested for multicollinearity to see if any of the variables had a significant relationship to any other.
+
+To detect multicollinearity between variables, we used Variance Inflation Factors (VIF)[@salmerón2018a] to quantify how much variance each of the regression coefficients is inflated by as a result of the linear regression model. Mathematically, the VIF for the $j$-th predictor variable ($X_j$) is calculated as:
+
+$$
+\text{VIF}_j = \frac{1}{1 - R_j^2}
+$$
+
+Here, $R_j^2$ represents the coefficient of determination obtained by regressing $X_j$ on all other predictor variables in the model. A higher VIF indicates greater multicollinearity, suggesting that the variable may be linearly dependent on other variables. A commonly agreed upon VIF that would indicate significant multicollinearity is 10. The result of this testing yielded no VIF value greater than 2 in the saturated model, and as such it is concluded that there exists little to no multicollinearity among all of the predictors in the dataset.
+
+### Variable Selection
+
+To find a more parsimonious model, three stepwise variable selection methods are performed – each using the same function "step" from the [@MASS] package. The stepwise algorithm iterates through the variables of the model passed into the function along with the direction and extracts and compares the Akaike's Information Criterion (AIC) for each variable to determine an optimal model fitted by maximum likelihood. This value is ultimately used to compare each model of the dataset to analyze how well a model fits. Mathematically, the AIC in each step in the function is calculated as:
+
+$$
+2n_{par}-2log(\hat{L})
+$$
+
+where $n_{par}$ represents the number of parameters in the fitted model. Upon finding an optimal model, that AIC value is recorded in the [@ModelComparison] Table found in the conclusion. For the purposes of finding a parsimonious model, we tested all three directions, namely: "both", "forward", and "backward", as we did not know if they would be identical or not. Results concluded that the three stepwise variable selection directions yield the same model. Because of this, only the "forward" selection model will be referenced going forward, for no other reason than it was the fastest in computation-time.
 
 ```{r Step.fwd, echo=FALSE}
 #| cache: true
+
+# Intercept model
 alz_logit_int <- glm(AlzheimerDiagnosis~1,data=alzData,family="binomial")
  
 # Step-wise feature selection ("forward" direction)
@@ -126,15 +141,16 @@ step.fwd.model<- step(alz_logit_int, direction = "forward",
                       scope = list(lower = alz_logit_int, upper = alz_logit_full),
                       trace = F) 
 vif(step.fwd.model) # Check if any vifs exceed 5 in forward selection model. None exceed 2
-#summary(step.fwd.model)
-#Forward selection method also yields same model as step-both method and backward selection. This method was much faster than the other two so further analysis will only use this model to represent the best "feature-selection-method" model.
+summary(step.fwd.model)
 ```
 
-Introduce deviance testing method. What is it, what does it look like, why I am using it, what are my results.
+Once again, the VIF function is used to ensure that no multicollinearly was introduced with the reduction of predictor variables. There was no significant VIF values.
+
+The glm model as determined by the stepwise forward selection method suggests that variables: "Country", "Age", "FamilyHistory", "GeneticRisk", and "UrbanvsRuralLiving" variables provide the "best" model. The first four listed make some intuitive sense from our understandings of Alzheimer's Disease, however "UrbanvsRuralLiving" is somewhat strange intuitively. In addition, the algorithm that determined this optimal model included this variable even though it showed a borderline significant p-value of 0.0961 which is not less than 0.05 as is the common practice. To further investigate this anomaly, deviance testing was performed to validate if this variable can be removed without significantly affecting the models fit.
+
+*TODO:Introduce deviance testing method. What is it, what does it look like, why I am using it, what are my results.*
 
 Deviance Test: Compare the best feature selected reduced model to one-variable removed models. If removing a variable results in a very large increase in deviance (and a very small p-value), it suggests that the variable plays an important role in the model fit.
-
-The purpose of these tests is to validate if the feature selection method(s) would provide the optimal model.
 
 Results of deviance tests suggest that removing the Urban vs Rural Living variable from the model would not significantly affect the model fit supported by its p-value being 0.096, which is greater than 0.05.
 
@@ -225,7 +241,7 @@ Splines on Age show high significance according to p-value. Gam check plots show
 
 ```{r GAM.model, echo=FALSE}
 alz_logit_gam<- gam(AlzheimerDiagnosis~ 
-                   Country+ s(Age)+ FamilyHistory+ GeneticRisk
+                   Country+ s(Age, knots = c(65,65,75,75))+ FamilyHistory+ GeneticRisk
                   ,data = alzData
                   ,family = binomial)
 summary(alz_logit_gam)
@@ -238,7 +254,6 @@ gam.check(alz_logit_gam)
 ```
 
 Introduce log odds method; what is it (show a formula in latex), why are we using it, interpret our results. Cite a textbook.
-
 
 ```{r Log.odds, echo=FALSE}
 #Calculate log-odds ratios for the reduced models to compare the magnitudes across predictors to see which ones have the strongest change in odds
@@ -263,13 +278,11 @@ log_odds_table <- log_odds_table %>% arrange(desc(abs(LogOdds_GAM)))
 kable(log_odds_table, caption = "Comparison of Log-Odds Ratios Between Reduced Models")
 ```
 
-
 Introduce AIC, what is it, what does its formula look like, why is it used and how are we using it.
 
 ## In order to compare against Emily's quadratic and interaction models, we will compare AIC's of the different models. Start a table with AIC values of my models. Will add Emily's models and AIC's when we combine everything. We will use this to ultimately determine the best model.
 
 ## For final report, for each method: include what a method is and if not mentioned in class - a citation from some textbook that the method is found, how it is done (latex of formula or process), reasoning for the method, and discuss the results.
-
 
 So digging into predictors individually, we look at ages relationship with the aggregate of "yes" diagnosis:
 
@@ -291,6 +304,7 @@ ggplot(alzData_countage, aes(x = Age)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
 ```
+
 We can find this almost step wise trend relating to total diagnosis's counted for each age group (50-65, 65-75,75-100)
 
 ```{r step-function,, fig.height=3.5, fig.width=3.5,fig.show='hold',echo=FALSE}
@@ -381,7 +395,6 @@ ggplot(alzData_avg, aes(x = AgeCategory, y = diagnosis_rate, color = Country, gr
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
 ```
 
-
 Now to simplify we display only the top and bottom averages overall.
 
 ```{r All Countries plot, echo=FALSE}
@@ -434,7 +447,6 @@ chi_test <- chisq.test(alz_table)
 # Print results
 print(chi_test)
 ```
-
 
 ## Quadratic and log models:
 
@@ -515,6 +527,7 @@ ggplot(data, aes(x =GeneticRisk, fill = AlzheimerDiagnosis)) +
   ylab("Proportion of Diagnosed") +
   labs(title = "Alzheimer's Diagnosis by Genetic Risk")
 ```
+
 Among people without genetic risk, the proportion of people diagnosed with Alzheimer's is 36.6%. In some people, this probability is 60.6%. As above, this is also a very important indicator, and people with genetic risk have a higher probability of developing Alzheimer's.
 
 ```{r GLM_int, echo=FALSE}
@@ -524,6 +537,7 @@ AIC(model_af)
 cv_model_af <- cv.glm(data, model_af, K = 10)
 cv_model_af$delta
 ```
+
 The Interaction between Age and Family is significant because p-value is 0.012 which is smaller than 0.05
 
 ## Gam with CV
@@ -537,8 +551,7 @@ cv_gam_af <- cv.glm(data, gam_af, K = 10)
 cv_gam_af$delta
 ```
 
-No FH:50-60 stable, 60-80 increase sharply; 80+ stable
-Yes FH:50-60 higher than NO FH, 60-80 same as NO FH
+No FH:50-60 stable, 60-80 increase sharply; 80+ stable Yes FH:50-60 higher than NO FH, 60-80 same as NO FH
 
 ```{r ModelCompare, echo=FALSE}
 model_comparison <- data.frame(
@@ -591,9 +604,14 @@ print(aic_comparison)
 #log odds
 #TODO caching chunks, formatting, remove MLR
 #Get ride /format summaries
-#add dylans confusion matrix
 ```
 
 Bibliography:
 
-#### https://www.science.smith.edu/~jcrouser/SDS293/labs/lab12-r.html
+#### <https://www.science.smith.edu/~jcrouser/SDS293/labs/lab12-r.html>
+
+<!--# VIF Citation -->
+
+[@salmerón2018a]
+
+[@MASS]
