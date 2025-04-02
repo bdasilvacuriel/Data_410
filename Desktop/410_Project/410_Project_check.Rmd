@@ -95,6 +95,8 @@ summary(alzData)
 
 ## Analysis Methods
 
+# Start of Dylan's Analysis
+
 ```{r Full.Log.Reg, include=FALSE}
 # Logistic Regression model on all variables
 
@@ -107,13 +109,11 @@ full_saturated_model.aic <- alz_logit_full$aic
 # Country, Age, FamilyHistory, and GeneticRisk seem to be the only significant variables.
 ```
 
-First, we identify what variables may have a significant relationship with a positive (or negative) alzheimer's diagnosis:
-
-Utilizing the general linear model regression from the [@MASS] package, a saturated logistic regression model was created to provide benchmark for evaluating the fit for simpler models. The underlying objective is to find the most parsimonious model and identify the variables that explain an Alzheimers Diagnosis.
+Utilizing the general linear model regression from the [@MASS] package, a saturated logistic regression model was created to provide a benchmark for evaluating the fit for simpler models. The underlying objective is to find the most parsimonious model and identify the variables that explain an Alzheimers Diagnosis.
 
 As many of the variables were converted to factors as a result of them being categorical, the saturated model was 58 predictor variables along with the intercept term. Since there is such a large amount of predictor variables included, we tested for multicollinearity to see if any of the variables had a significant relationship to any other.
 
-To detect multicollinearity between variables, we used Variance Inflation Factors (VIF)[@salmerón2018a] to quantify how much variance each of the regression coefficients is inflated by as a result of the linear regression model. Mathematically, the VIF for the $j$-th predictor variable ($X_j$) is calculated as:
+To detect multicollinearity between variables, we used Variance Inflation Factors (VIF) [@salmerón2018a] to quantify how much variance each of the regression coefficients is inflated by as a result of the linear regression model. Mathematically, the VIF for the $j$-th predictor variable ($X_j$) is calculated as:
 
 $$
 \text{VIF}_j = \frac{1}{1 - R_j^2}
@@ -123,15 +123,9 @@ Here, $R_j^2$ represents the coefficient of determination obtained by regressing
 
 ### Variable Selection
 
-To find a more parsimonious model, three stepwise variable selection methods are performed – each using the same function "step" from the [@MASS] package. The stepwise algorithm iterates through the variables of the model passed into the function along with the direction and extracts and compares the Akaike's Information Criterion (AIC) for each variable to determine an optimal model fitted by maximum likelihood. This value is ultimately used to compare each model of the dataset to analyze how well a model fits. Mathematically, the AIC in each step in the function is calculated as:
+To find a more parsimonious model, three stepwise variable selection methods are performed – each using the same function "step" from the [@MASS] package. The stepwise algorithm iterates through the variables of the model passed into the function along with the direction and extracts and compares the Akaike's Information Criterion (AIC) for each variable to determine an optimal model fitted by maximum likelihood. This value is ultimately used to compare each model of the dataset to analyze how well a model fits. Upon finding an optimal model, that AIC value is recorded in Table \@ref(tab:aic-table) found in the appendix. For the purposes of finding a parsimonious model, we tested all three directions, namely: "both", "forward", and "backward", as we did not know if they would yield similar models or not. Results concluded that the three stepwise variable selection directions did result in the same model. Because of this, only the "forward" selection model will be referenced going forward for no other reason than it was the fastest in computation-time.
 
-$$
-AIC_j =2n_{par}-2log(\hat{L_j})
-$$
-
-where $n_{par}$ represents the number of parameters in the $j^{th}$ fitted model. Upon finding an optimal model, that AIC value is recorded in the [@ModelComparison] Table found in the conclusion. For the purposes of finding a parsimonious model, we tested all three directions, namely: "both", "forward", and "backward", as we did not know if they would yield similar models or not. Results concluded that the three stepwise variable selection directions did result in the same model. Because of this, only the "forward" selection model will be referenced going forward for no other reason than it was the fastest in computation-time.
-
-```{r Step.fwd, echo=FALSE}
+```{r Step.fwd, include=FALSE}
 #| cache: true
 
 # Intercept model
@@ -141,28 +135,16 @@ alz_logit_int <- glm(AlzheimerDiagnosis~1,data=alzData,family="binomial")
 step.fwd.model<- step(alz_logit_int, direction = "forward", 
                       scope = list(lower = alz_logit_int, upper = alz_logit_full),
                       trace = F) 
-vif(step.fwd.model) # Check if any vifs exceed 5 in forward selection model. None exceed 2
+sum(vif(step.fwd.model) >= 5) # Check if any vifs exceed 5 in forward selection model. None exceed 2
 summary(step.fwd.model)
 step_fwd_model.aic <- step.fwd.model$aic
 ```
 
 Once again, the VIF function is used to ensure that no multicollinearly was introduced with the reduction of predictor variables. There was no significant VIF values.
 
-The glm model as determined by the stepwise forward selection method suggests that variables: "Country", "Age", "FamilyHistory", "GeneticRisk", and "UrbanvsRuralLiving" variables provide the "best" model. The first four listed make some intuitive sense from our understandings of Alzheimer's Disease, however "UrbanvsRuralLiving" is somewhat strange intuitively. In addition, the algorithm that determined this reduced model included this variable even though it showed a borderline significant p-value of 0.0961 which is not less than 0.05 as is the common practice.
+The glm model as determined by the stepwise forward selection method suggests that variables: "Country", "Age", "FamilyHistory", "GeneticRisk", and "UrbanvsRuralLiving" variables provide the "best, optimal" model. The first four listed make some intuitive sense from our understandings of Alzheimer's Disease, however "UrbanvsRuralLiving" is somewhat strange intuitively. In addition, the algorithm that determined this reduced model included this variable even though it showed a borderline significant p-value of 0.0961 which is not less than 0.05 as is the common practice.
 
-To further investigate this peculiarity, a statistical inference method called chi-squared testing [@INSERT.CLASS.TEXTBOOK.REFERENCE.HERE] was used on the deviances of the models to assess if a variable can be removed without significantly affecting the model fit. To do this, the change in deviance measures the change between the log likelihood of the saturated model (in this case, the saturated model is the optimal model produced by the stepwise forward selection method) and the log likelihood of a reduced model. The reduced model is the same as the saturated model sans one variable. The deviance of each model was calculated for the purpose of showing the differences between a significant change vs. a non-significant change. The difference in deviance for each reduced model against the saturated model is calculated as:
-
-$$
-D = 2\phi(\ell_{saturated} − \ell_{reduced\ model})
-$$
-
-where $\phi$ is the dispersion parameter. This parameter is taken to be 1 for a binomial family. When deviance is scaled by the dispersion parameter $\phi$ , the scaled deviance follows a $\chi^2$ distribution. The test statistic for the $\chi^2$ distribution is then calculated as:
-
-$$
-\chi^2=D_{reduced}-D_{saturated}
-$$
-
-If removing a variable results in a large increase in deviance (and a small p-value less than 0.05 to show significance), it suggests that the variable plays an important role in the model fit. If this is not the case, the variable can be removed without significantly affecting the model fit.
+To further investigate this peculiarity, a statistical inference method called chi-squared testing found in the class textbook [@RegressionGLM] of section 8.3.1, was used on the deviances' of the models to assess if a variable can be removed without significantly affecting the model fit. To do this, the change in deviance measures the change between the log likelihood of the saturated model (in this case, the saturated model is the optimal model produced by the stepwise forward selection method) and the log likelihood of a reduced model. The reduced model is the same as the saturated model sans one variable. The deviance of each model was calculated for the purpose of showing the differences between a significant change vs. a non-significant change. These deviances If removing a variable results in a large increase in deviance (and a small p-value less than 0.05 to show significance), it suggests that the variable plays an important role in the model fit. If this is not the case, the variable can be removed without significantly affecting the model fit.
 
 ```{r Step.fwd.chisquared.tests, echo=FALSE}
 ## Fit reduced models (each with one variable removed)
@@ -240,20 +222,19 @@ chi.results <- data.frame(
 
 kable(chi.results, 
       caption = "Significance Tests for Reduced Models",
-      digits = 8,
       label = "Chi-Squared Test Results",
       col.names = c("Variable Removed", "Deviance Change", "DF Difference", "P-value")) %>%
   kable_styling(bootstrap_options = c("striped", "condensed", "responsive"), 
                 full_width = FALSE) %>%
-  column_spec(2, bold = TRUE, color = ifelse(chi.results$Deviance.Change == min(chi.results$Deviance.Change), "red","black")) %>%  # Make "Deviance Change" column bold
-  column_spec(4, bold = TRUE, color = ifelse(chi.results$P.value > 0.05, "red", "black"))  # Highlight insignificant P-values
+  column_spec(2, color = ifelse(chi.results$Deviance.Change == min(chi.results$Deviance.Change), "red","black")) %>%  # Make "Deviance Change" column bold
+  column_spec(4, color = ifelse(chi.results$P.value > 0.05, "red", "black"))  # Highlight insignificant P-values
 ```
 
 The results of $\chi^2$ tests suggested that removing the "UrbanvsRuralLiving" variable from the model would not significantly affect the model fit supported by a small change in deviance and insignificant p-value = 0.096. This test motivated the removal of this variable from the optimal model produced by the stepwise algorithm, further simplifying the model and resulted in the inference that a persons geographical living demographic does not have a significant affect on an Alzheimer's diagnosis.
 
 A QQ-plot of the residuals of the resulting reduced model allows for the assessment of whether the deviance residuals follow a standard normal distribution. We found that the residuals strongly deviated from the linear normal assumption at the tail-end of the model indicating that the model is not capturing some pattern(s) in the data.
 
-```{r Reduced.model.check, echo=FALSE}
+```{r Reduced.model.check, echo=FALSE, fig.align='center'}
 ## Fit reduced model
 alz_logit_reduced <- glm(AlzheimerDiagnosis~ 
                    Country+ Age+ FamilyHistory+ GeneticRisk
@@ -261,54 +242,105 @@ alz_logit_reduced <- glm(AlzheimerDiagnosis~
                   ,family = binomial)
 #summary(alz_logit_reduced)
 alz_logit_red.aic <- alz_logit_reduced$aic
-alz_logit_red.aic
-plot(alz_logit_reduced, which = 2)
+plot(alz_logit_reduced, which = 2, 
+     main = "Residuals vs Fitted Values - Reduced Model", 
+     col = "black", pch = 20, cex = 0.6) # Customizing points with color and size
 ```
 
-As there is some non-linear relationship present, a general additive model (GAM) is introduced to smooth this relationship to improve the models' fit. Since "Age" is the only variable in the model that is not categorical, we suspected that this variable may have a non-linear relationship with an Alzheimer's diagnosis. This smoothing is performed by using cubic splines on "Age" instead of the simple linear term. Recall in **[INSERT BENS SPLINE ANALYSIS RESULTS HERE]** where the number of splines used was four, allowed us to infer **[INSERT JUSTIFICATION FOR NUMBER OF SPLINES HERE]**.
+As there is some non-linear relationship present, a general additive model (GAM) is introduced to smooth this relationship to improve the models fit. Since "Age" is the only variable in the model that is not categorical, we suspected that this variable may have a non-linear relationship with an Alzheimer's diagnosis. This smoothing was performed by using cubic regression splines on "Age" instead of a simple linear term.
 
-```{r GAM.model, echo=FALSE}
+```{r GAM.model, include=FALSE}
 alz_logit_gam<- gam(AlzheimerDiagnosis~ 
-                   Country+ s(Age, k = 6)+ FamilyHistory+ GeneticRisk
-                   ,knots = list(Age = c(65,65,75,75))
+                   Country+ FamilyHistory+ GeneticRisk+
+                   s(Age, bs="cr",k=34)
                   ,data = alzData
                   ,family = binomial)
 summary(alz_logit_gam)
-# Splines on Age show high significance according to p-value.
+
 alz_logit_gam.aic <- alz_logit_gam$aic
 alz_logit_gam.aic
+
 gam.check(alz_logit_gam)
-#gam check plots shows bimodal, normal residuals, which eliminated the skewness from the previous model
 ```
 
-By plotting the results of the gam model, a bimodal pattern can be seen, indicating that the residuals have a much stronger linear relationship infering that the GAM model eliminated the skewness from the GLM model.
+```{r Gam.plot, echo=FALSE}
+plot(alz_logit_gam,
+     main = "Estimated Smooth Effect of Age on Log-Odds of Alzheimers Diagnosis"
+     ,ylab="Estimated Smooth Function")
+```
 
-Introduce log odds method; what is it (show a formula in latex), why are we using it, interpret our results. Cite a textbook.
+The results of the Generalized Additive Model (GAM) highlight a non-linear relationship between age and Alzheimer's diagnosis. The smooth function applied to "Age" using cubic regression splines confirms this non-linearity, as seen in the estimated smooth effect plot. The sharp increase in log-odds around ages 66 and again around 76 suggests a critical transition period where the likelihood of an Alzheimer's diagnosis significantly increases around these ages. This pattern aligns with existing medical literature indicating that late-onset Alzheimer's risk increases exponentially with age.
 
-```{r Log.odds, echo=FALSE}
-#Calculate log-odds ratios for the reduced models to compare the magnitudes across predictors to see which ones have the strongest change in odds
-alz_reduced.log_odds_ratio <- exp(coef(alz_logit_reduced))
-alz_reduced.log_odds_ratio
+The deviance residuals Q-Q plot shows that the residuals closely follow the theoretical quantiles, with minor deviations at the tails. This suggests that the model provides a reasonable fit to the data, though some small departures from normality may exist. The model summary further supports the importance of age, with the smooth term for "Age" having a highly significant p-value (\<2e-16).
+
+Beyond age, several categorical variables significantly contribute to the model. Family history and genetic risk are highly significant predictors, reinforcing their well-established roles in Alzheimer's risk.
+
+```{r Log.odds, include=FALSE}
+#Calculate log-odds ratios of predictors in the GAM model to see which ones have the strongest change in odds of alzheimers diagnosis
 
 alz_gam.log_odds_ratio <- exp(coef(alz_logit_gam))
-alz_gam.log_odds_ratio
-#Interpret the log odds ratio of the 2 models by comparing the magnitudes. Put into a table for clarity, sorted desc
 
-# Convert to data frames
-df_reduced <- data.frame(Predictor = names(alz_reduced.log_odds_ratio), LogOdds_Reduced = alz_reduced.log_odds_ratio)
-df_gam <- data.frame(Predictor = names(alz_gam.log_odds_ratio), LogOdds_GAM = alz_gam.log_odds_ratio)
+# Put into a table for clarity, sorted desc
+df_gam <- data.frame(Predictor = names(alz_gam.log_odds_ratio),
+                     LogOdds_GAM = alz_gam.log_odds_ratio,
+                     row.names = NULL)
 
-# Merge both data frames by Predictor (outer join to keep all predictors)
-log_odds_table <- full_join(df_reduced, df_gam, by = "Predictor")
+# Replace spline component names for readability
+df_gam$Predictor <- gsub("s\\(Age\\)\\.(\\d+)", "Age (Spline Component \\1)", df_gam$Predictor)
 
 # Sort by the strongest log-odds in the reduced model
-log_odds_table <- log_odds_table %>% arrange(desc(abs(LogOdds_GAM)))
+log_odds_table <- df_gam %>% arrange(desc(abs(LogOdds_GAM)))
 
 # Display table
-kable(log_odds_table, caption = "Comparison of Log-Odds Ratios Between Reduced Models")
+## Put this table in the appendix
+kable(log_odds_table, 
+      caption = "Log-Odds of GAM Model Predictors",
+      label = "log-odds-gam",
+      col.names = c("Predictor", "Log Odds (GAM Model)")) %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "responsive"), 
+                full_width = FALSE)
 ```
 
-Introduce AIC, what is it, what does its formula look like, why is it used and how are we using it.
+To further assess the impact of each predictor in the Generalized Additive Model (GAM), we calculated the log-odds ratios of all variables. These values indicate the relative change in the odds of an Alzheimer's diagnosis associated with each predictor.
+
+The strongest effects were observed in the spline components of age, particularly in the range of spline components 20–33, where the log-odds exceeded 3.9, with the highest being Age (Spline Component 22) at 4.99. This confirms that age remains the dominant risk factor, with the greatest effect occurring at older ages, aligning with known disease progression trends.
+
+Among categorical predictors, Genetic Risk (log-odds = 3.77) and Family History (log-odds = 2.37) had the highest influence on Alzheimer's diagnosis, reinforcing the well-established role of genetic predisposition.
+
+Country-level effects also revealed substantial variation in Alzheimer's diagnosis rates. Russia (log-odds = 1.82), India (log-odds = 1.78), and Brazil (log-odds = 1.65) showed significantly higher odds of diagnosis compared to the baseline country, while Canada (log-odds = 0.74), Norway (log-odds = 0.74), and Japan (log-odds = 0.69) exhibited lower odds. These disparities could stem from differences in healthcare access, diagnostic practices, or genetic and environmental factors.
+
+Interestingly, spline components for lower ages (e.g., Spline Component 1–10, log-odds \< 0.35) had negligible effects, suggesting that younger individuals have minimal risk variations. The intercept term (log-odds = 0.34) represents the baseline probability of diagnosis before adjusting for predictors.
+
+A complete table of log-odds ratios is provided in the appendix \@ref(tab:log-odds-gam). These results underscore the importance of age, genetic risk, and geographic factors in predicting Alzheimer's, offering valuable insights for targeted risk assessment.
+
+Overall, the GAM improves model flexibility by capturing the non-linear age effect while still incorporating key categorical predictors. The adjusted R² value of 0.27 and deviance explained of 22.5% indicate a moderate fit, suggesting that while age and the included predictors are important, other factors that were not captured in the survey in which this dataset is based on, likely contribute to Alzheimer's risk.
+
+```{r AIC.Table, echo=FALSE}
+
+AIC.table <- data.frame(Model=c(
+              #Insert model names here,
+                                "Full-Saturated Logistic Regression",
+                                "Step Forward Optimal Model (Reduced)",
+                                "No 'UrbanvsRuralLiving' in Optimal model (Reduced)",
+                                "GAM - (Splines on Age)"
+                                ),
+                        AIC=c(
+              #Insert model aic values here (ensure they align with model name above)
+                          full_saturated_model.aic,
+                              step_fwd_model.aic,
+                              alz_logit_red.aic,
+                              alz_logit_gam.aic),
+                        row.names = NULL
+)
+kable(AIC.table, 
+      caption = "Model AIC Comparison Table",
+      label = "aic-table",
+      col.names = c("Model", "AIC")) %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "responsive"), 
+                full_width = FALSE)
+```
+
+# End of Dylan's Analysis
 
 In order to compare against Emily's quadratic and interaction models, we will compare AIC's of the different models. Start a table with AIC values of my models. Will add Emily's models and AIC's when we combine everything. We will use this to ultimately determine the best model.
 
@@ -570,7 +602,7 @@ cv_model_af$delta
 
 The Interaction between Age and Family is significant because p-value is 0.012 which is smaller than 0.05
 
-## Gam with CV
+## GAM with CV
 
 ```{r GAM, echo=FALSE}
 gam_af <- gam(AlzheimerDiagnosis ~ s(Age, by = FamilyHistory, k = 5) + FamilyHistory,data = data, family = binomial)
@@ -622,6 +654,17 @@ aic_comparison <- rbind(aic_comparison, data.frame(Model = "Gam log", AIC = AIC(
 print(aic_comparison)
 ```
 
+# Appendix
+
+```{r Appendix, echo=FALSE}
+kable(log_odds_table, 
+      caption = "Log-Odds of GAM Model Predictors",
+      label = "log-odds-gam",
+      col.names = c("Predictor", "Log Odds (GAM Model)")) %>%
+  kable_styling(bootstrap_options = c("striped", "condensed", "responsive"), 
+                full_width = FALSE)
+```
+
 ```{r}
 #TODO area
 # Create age categories
@@ -636,10 +679,6 @@ print(aic_comparison)
 #Get ride /format summaries
 ```
 
-Bibliography:
+# Bibliography
 
 #### <https://www.science.smith.edu/~jcrouser/SDS293/labs/lab12-r.html>
-
-<!--# VIF Citation --> [@salmerón2018a]
-
-<!--# GLM Package Citation--> [@MASS]
