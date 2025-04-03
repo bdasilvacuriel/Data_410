@@ -138,8 +138,6 @@ Individuals with reported family history of Alzheimer's responded: `r Famsummary
 
 Individuals tested for the genetic risk factor of the APOE-$\epsilon4$ allele displayed: `r GenriskSummary` *(no,yes)*
 
-INSERT EMILY'S MOTIVATION OF FINDINGS HERE ABOUT FAMILY HISTORY AND GENETIC RISK
-
 ```{r FamilyHist,fig.cap="Alzheimer's Diagnosis by Family History\n and Alzheimer's Diagnosis by Genetic Risk",echo=FALSE, fig.show='hold',fig.width=3.5,fig.height=3}
 
 par(mfrow = c(2,2))
@@ -177,9 +175,11 @@ ggplot(genetic_risk_summary, aes(x = GeneticRisk, y = proportion, fill = Alzheim
 par(mfrow = c(1,1))
 ```
 
-As can be seen from the chart, among those without Alzheimers in their Family History, 36.8% were diagnosed with Alzheimers, while among those with a Family History, 51.9% were diagnosed with Alzheimer.Therefore, Family History is an important indicator for judging Alzheimer, and people with a Family History are more likely to suffer from Alzheimer.
+Among all the variables, the regression coefficients of Family History and Genetic Risk were significant (p values were all less than 0.05), indicating that they had strong predictive power in the model, and were therefore further analyzed separately.
 
-Among people without genetic risk, the proportion of people diagnosed with Alzheimer's is 36.6%. In some people, this probability is 60.6%. As above, this is also a very important indicator, and people with genetic risk have a higher probability of developing Alzheimer's.
+Specifically, the diagnosis rate of Alzheimer’s was 51.9% in people with a family history, significantly higher than 36.8% in people without a family history. And in people with genetic risk, the diagnosis rate was 60.6% which was also significantly higher than that of people without genetic risk (36.6%). This result was reflected by the grouped bar chart, showing that the diagnosis rate was higher in people with a family history and genetic risk.
+
+These results show that Family History and Genetic Risk are important influencing factors of Alzheimer’s risk, and can be used as potential risk indicators to provide support for early screening and risk intervention.
 
 ### Possible significant variables (Age, Family History, Country, Genetic Risk)
 
@@ -426,11 +426,15 @@ aic_comparison <- rbind(aic_comparison, data.frame(Model = "B-Spline (Degree 3)"
 print(aic_comparison)
 ```
 
+REPLACE THIS SENTENCE WITH BENS CONCLUSION FROM AIC TABLE.
+
 \newpage
 
-## Emily - BMI
+### Quadratic Model Analysis of Body Mass Index and Alzheimers
 
-In the primary model comparison, logistic regression model and quadratic model were constructed respectively, and AIC and BIC were used as evaluation indicators. The results showed that the AIC and BIC of the quadratic model were lower than the logistic model, indicating that it has a better fitting effect. In addition, BMI was selected as the key variable for subsequent modeling. On the one hand, BMI is one of the more important continuous variables in the data set, which is evenly distributed in the sample and suitable for exploring nonlinear relationships, on the other hand, existing studies have shown that there may be a certain correlation between body mass index and cognitive function in the elderly, which has a potential physiological explanation basis(Kang et al., 2021). Therefore, on the basis of the quadratic model, the B-spline and GAM methods were further combined to conduct an in-depth analysis of the relationship between BMI and Alzheimer’s diagnosis.
+The initial modeling approach applied a linear regression model to predict Alzheimer's diagnosis. However, due to poor performance, logistic and quadratic models were introduced to better capture potential nonlinear relationships. Model selection was based on AIC and BIC, which indicated that the quadratic model outperformed the ordinary logistic model. Consequently, the quadratic model was selected as the foundation for subsequent analysis on BMI.
+
+BMI was identified as a key variable for further modeling. This selection was based on two factors: (1) BMI is a well-distributed continuous variable in the dataset, making it suitable for nonlinear exploration, and (2) previous research has suggested a correlation between BMI and cognitive function in the elderly, which may have physiological implications for Alzheimer’s disease [@kang2021].
 
 ```{r BMI_diagnosis_plot, include=FALSE,fig.cap="Count of 'Yes' Alzheimer's Diagnosis and Total Sample Size by Age", cache=TRUE}
 data <- alzDataEmily
@@ -451,11 +455,7 @@ ggplot(data_count_bmi, aes(x = BMI)) +
   theme_minimal()
 ```
 
-In the visualization of the relationship between BMI and Alzheimer’s diagnosis, it was observed that the number of confirmed cases showed slight fluctuations within the BMI range, especially at a slightly higher intermediate level. The overall trend was non-linear but the fluctuations were not dramatic. Based on this feature, a quadratic model was constructed, using BMI and its square term to model the number of confirmed cases. The model results show that although the fitted parabolic shape is basically flat, it can better reflect the local relationship between BMI and confirmed cases than the linear model. However, the flexibility of the quadratic model is limited, and it may be difficult to characterize more complex nonlinear trends. Therefore, methods such as B-spline and GAM are further introduced to improve the fitting performance.
-
-### Quadratic Analysis
-
-In order to further explore whether there is a nonlinear relationship between BMI and Alzheimer’s diagnosis, we constructed a quadratic model, using BMI and the square of BMI as explanatory variables, and the number of confirmed cases corresponding to each BMI as the response variable for modeling. The fitting results are shown in the figure: It can be observed from the figure that the model fits a relatively gentle parabola, showing that the number of confirmed cases is slightly higher in the middle range of BMI, but the overall change is small. Quadratic models have limited flexibility and may not be able to effectively capture nonlinear features in the data, we infer that the relationship between BMI and Alzheimer’s diagnosis may be more complex and difficult to explain with a simple polynomial, and a more flexible modeling method needs to be introduced. Compared with the quadratic model, B-spline provides a more flexible function form, which can control the smoothness and curvature of the curve by adjusting the degree of the polynomial. We set the degree to 1, 2, and 3, corresponding to piecewise linear, quadratic, and cubic polynomial splines, respectively. As can be seen from the figure, when degree = 1, the fitting result presents a form close to linear segmentation, and the overall trend is gentle. While the models with degree = 2 and 3 show a slight upward trend in the low BMI range (about 18-22), there may be a certain local nonlinear relationship between BMI and the number of confirmed cases. Although the overall trend is not significant, the higher-order spline model can better reflect the small changes in the data. At the same time, from the confidence interval (red dotted line), the model fitting performance is relatively stable.
+Visualization of BMI and Alzheimer’s diagnosis revealed slight fluctuations in confirmed cases within the BMI range, particularly at slightly higher intermediate levels. The trend appeared nonlinear, though the fluctuations were not extreme. Based on this pattern, a quadratic model incorporating BMI and its squared term was constructed. The model results indicated a relatively flat parabolic fit, which better captured the local relationship between BMI and confirmed cases than the linear model. However, the quadratic model's flexibility was limited, potentially missing more complex nonlinear trends.
 
 ```{r Add.Quad.terms, include=FALSE, cache=TRUE}
 data$Age2 <- data$Age^2
@@ -485,6 +485,10 @@ lines(data_count_bmi$BMI, quad_pred[, "lwr"], col = "red", lty = 2)
 
 summary(quad_bmi_model)
 ```
+
+To enhance the model's adaptability, B-spline and Generalized Additive Model (GAM) techniques were introduced for further exploration.
+
+Compared to the quadratic model, B-splines provide a more flexible function form by allowing smoothness and curvature control through the degree of the polynomial. The analysis considered degree values of 1 (piecewise linear), 2 (quadratic), and 3 (cubic). The results showed that: when **degree = 1**, the fit resembled segmented linear trends with a relatively stable overall pattern; when **degree = 2 or 3**, a slight upward trend was observed in the lower BMI range (18–22), suggesting some local nonlinear relationships. Although the overall trend was not dramatic, higher-order splines better captured small fluctuations in the data.
 
 ```{r LM.BMI.Splines, include=FALSE, cache=TRUE}
 bspline_deg1 <- lm(Diagnosis_Yes_Count ~ bs(BMI, knots = c(23, 28), degree = 1), data = data_count_bmi)
@@ -521,6 +525,8 @@ lines(data_count_bmi$BMI, bs_pred3[, "upr"], col = "red", lty = 2)
 lines(data_count_bmi$BMI, bs_pred3[, "lwr"], col = "red", lty = 2)
 ```
 
+To further improve model flexibility and reduce reliance on manually selecting knots and degrees, GAM was employed. GAM allows automatic smoothing adjustments while preserving nonparametric flexibility. The analysis explored different smoothing levels by setting the number of basis functions (**k**) to 4, 6, and 10; when **k = 4**: The fitted curve was nearly flat, indicating that lower degrees of freedom struggled to capture nonlinear characteristics, when **k = 6**: The curve exhibited slight curvature at both ends, reflecting moderate flexibility, and when **k = 10**: The curve displayed more local fluctuations, with slight upward and downward trends across multiple BMI intervals, suggesting potential complex nonlinear structures.
+
 ```{r GamBMI4,include=FALSE,cache=TRUE}
 
 gam_k4 <- gam(Diagnosis_Yes_Count ~ s(BMI, bs = "cr", k = 4), data = data_count_bmi)
@@ -553,7 +559,7 @@ lines(data_count_bmi$BMI, gam_pred10, col = "purple", lwd = 2)
 AIC(quad_bmi_model, bspline_deg1, bspline_deg2, bspline_deg3, gam_k4, gam_k6, gam_k10)
 ```
 
-Compared with the quadratic model, B-spline provides a more flexible function form, and the smoothness and curvature of the curve can be controlled by adjusting the degree. We set the degree to 1, 2, and 3, respectively, corresponding to piece-wise linear, quadratic, and cubic polynomial splines. As can be seen from the figure, when degree = 1, the fitting result presents a shape close to linear segmentation, and the overall trend is flat. While the models with degree = 2 and 3 show a slight upward trend in the low BMI range, and there may be a certain local nonlinear relationship between BMI and the number of confirmed cases. Although the overall trend is not significant, the higher-order spline model can better reflect the small changes in the data. At the same time, from the confidence interval (red dashed line), the model fitting performance is relatively stable.
+Although higher degrees of freedom improved visualization, they also increased the risk of over-fitting. Model selection was ultimately guided by AIC and cross-validation (CV) errors. Balancing AIC and CV, the GAM model with k = 6 demonstrated the best stability and predictive performance, making it the most suitable approach for modeling the relationship between BMI and Alzheimer’s diagnosis.
 
 ```{r CV_Gam, include=FALSE, cache=TRUE}
 cv_gam_k4 <- cv.glm(data_count_bmi, gam_k4, K = 10)
@@ -566,11 +572,9 @@ cv_results <- data.frame(
 kable(cv_results)
 ```
 
-Based on the modeling results, further observation of the relationship between BMI and Alzheimer’s diagnosis results shows that although the overall trend is relatively flat, the number of confirmed cases is slightly higher in the middle range of BMI, while it is relatively lower in the lower and higher BMI ranges. This trend is reflected in all models.
-
 According to the research results, the dynamic changes in BMI may reveal Alzheimer’s risk better than the value at a single point in time [@kang2021]. Women who experienced a significant decrease in BMI or a large fluctuation in weight within 2-4 years had a significantly increased risk of developing Alzheimer’s. This may be related to physiological mechanisms such as insufficient energy intake, imbalanced hormone levels, and lack of key nutrients caused by weight loss, which in turn induce or accelerate the decline of cognitive function. This finding suggests that a continuous decrease or instability in BMI may be an early manifestation of mild cognitive impairment. Therefore, although the number of confirmed cases at extreme BMI levels is low in analysis, we still need to be vigilant about the potential significance of BMI change trends in early warning of the disease.
 
-In summary, the relationship between BMI and Alzheimer’s risk may not only be nonlinear, but may also be affected by the weight change pattern in the time periods. In predictive modeling and risk intervention, BMI should be considered as an indicator together with age, genetic factors, cognitive ability and other variables to achieve more accurate early identification and prevention of Alzheimer’s.
+In summary, the relationship between BMI and Alzheimer’s risk may not only be nonlinear, but may also be affected by the weight change pattern in the time periods. In predictive modeling and risk intervention, BMI should be considered as an indicator together with age, genetic factors, cognitive ability and other variables to achieve more accurate early identification and prevention of Alzheimer’s. However, results from the quadratic BMI variable in both GLM and GAM models did not find a significant relationship with Alzheimer’s diagnosis. This suggests that while BMI-related features may provide useful insights, additional research is needed to determine their precise role in Alzheimer’s risk assessment.
 
 ## Age and Family History Interactions
 
@@ -582,9 +586,7 @@ cv_model_af <- cv.glm(data, model_af, K = 10)
 cv_model_af$delta
 ```
 
-The interaction between "Age" and "FamilyHistory" is borderline significant because p-value is 0.012 which is smaller than 0.05.
-
-To further improve the adaptability of the model and reduce the dependence on the selection of knots and degree parameters, we introduced the Generalized Additive Model (GAM) for modeling. GAM can automatically adjust the degree of smoothing while maintaining the flexibility of non-parametric modeling, thus taking into account both the quality of fitting and the stability of the model. We set the number of smooth basis functions to k = 4, 6, and 10, respectively, and compared the model fitting effects under different settings. The results show that when k = 4, the fitting curve is close to flat, with only a slight increase in the middle of the BMI, indicating that when the degrees of freedom are low, the model is difficult to capture the nonlinear characteristics of the data; when k = 6, the curve is slightly curved at both ends; when k increases to 10, the fitting curve shows more local fluctuations, and there are slight upward and downward trends in multiple BMI intervals, suggesting that there may be more complex nonlinear structures. Although the high degree of freedom model performs better in visualization, it is necessary to pay attention to the potential risk of overfitting. Therefore, further model selection should be weighed in combination with indicators such as AIC and cross-validation.
+After evaluating the interaction of multiple variables, we found that the interaction term between Age and Family History was borderline significant in the Generalized Linear Model (p = 0.012). This suggests that the effect of age on Alzheimer’s diagnosis may be influenced by family history. To explore this relationship further, we constructed a Generalized Additive Model (GAM) incorporating interaction terms for comparison.
 
 ```{r GAM_A.FH_int, include=FALSE, cache=TRUE}
 set.seed(123)
@@ -593,16 +595,11 @@ plot(gam_af, pages = 1, se = TRUE)
 gam_af_aic<-AIC(gam_af)
 data$AlzheimerDiagnosis <- ifelse(data$AlzheimerDiagnosis == "Yes", 1, 0)
 cv_gam_af <- cv.glm(data, gam_af, K = 10)
+summary(gam_af)
 #cv_gam_af$delta
 ```
 
-No FH:50-60 stable, 60-80 increase sharply; 80+ stable Yes FH:50-60 higher than NO FH, 60-80 same as NO FH.
-
-To further improve the adaptability of the model and reduce the dependence on the selection of knots and degree parameters, we introduced the Generalized Additive Model(GAM) for modeling. To examine the impact of different smoothing levels on the results, the number of smoothing basis functions k = 4, 6 and 10 were set respectively. The selection of k values covers low, medium and relatively high degrees of freedom settings to evaluate the fitting performance and trend stability at different levels of flexibility. The results show that when k = 4, the fitting curve is close to flat, with only a slight increase in the middle of the BMI, indicating that when the degrees of freedom are low, the model is difficult to capture the nonlinear characteristics of the data. When k = 6, the curve is slightly curved at both ends. When k increases to 10, the fitting curve shows more local fluctuations, and there are slight upward and downward trends in multiple BMI intervals.
-
-In order to compare the fitting effects of each model, AIC and cross-validation error (CV) were calculated as evaluation indicators. The results show that the AIC of the quadratic model is 1416.256, and the AIC of the B-spline model at different orders varies slightly, all slightly higher than this value. The GAM model achieves the lowest AIC (1414.954) when k = 10, showing a stronger fitting ability. However, further analysis of CV shows that as the k value increases, the cross-validation error of the GAM model gradually increases, with the CV being the smallest (300.26) when k = 6, and rising to 328.75 when k = 10. This phenomenon suggests that a higher number of smooth basis functions can improve the fit of the training set, but may lead to overfitting. Therefore, after comprehensively weighing the AIC and CV indicators, the GAM model showed better fitting stability and predictive ability when k = 6, and is a more suitable modeling method for characterizing the relationship between BMI and Alzheimer’s diagnosis.
-
-```{r ModelCompare, echo=FALSE, cache=TRUE}
+```{r ModelCompare, include=FALSE, cache=TRUE}
 model_comparison <- data.frame(
   Model = c("GLM_af", "GAM_af"),
   AIC = c(AIC(model_af), AIC(gam_af)),
@@ -611,7 +608,9 @@ model_comparison <- data.frame(
 model_comparison
 ```
 
-Alzheimer's risk increases with the age. And risk becomes higher with family history. There is evidence of an interaction between age and family history on Alzheimer’s diagnosis.
+In terms of model evaluation, the AIC (83676.97) and cross-validation error (CV = 0.1907) of the GAM model were better than those of the corresponding GLM model (AIC = 84985.45, CV = 0.1943), indicating that GAM performed better in balancing fitting ability and generalization performance.
+
+The results revealed that while the overall trends for individuals with and without family history were similar, the risk of Alzheimer’s diagnosis increased rapidly after age 60 in both groups. However, individuals with a family history exhibited a higher risk between ages 50-60, and their overall risk curve was elevated. This indicates that family history significantly raises early risk levels. The individual regression coefficients of Age and Family History was significant (p \< 0.05) while the interaction term was negligible towards determining an Alzheimers diagnosis, highlighting their strong predictive power in the model. Given their importance, we conducted further analysis on these variables without their interaction.
 
 ## Dylan - Analysis Methods
 
