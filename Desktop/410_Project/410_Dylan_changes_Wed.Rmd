@@ -7,6 +7,7 @@ header-includes:
   - \usepackage{longtable}
   - \usepackage{array}
   - \usepackage{xcolor}
+  - \usepackage{tcolorbox}
 output: pdf_document
 bibliography: references.bib
 ---
@@ -15,17 +16,19 @@ bibliography: references.bib
 
 Alzheimer's disease is a progressive brain disease and the most common cause and type of dementia . Dementia causes a decline in memory and cognitive abilities, and in severe cases can even affect basic functions of daily life. The disease also shortens the lifespan of patients and places long-term physical and mental burdens on patients and their families. More than half of all dementia patients in the world suffer from Alzheimer's disease, and the disease is currently incurable, the interventions only slowing its progression.
 
-One well-known gene that influences Alzheimer’s risk is the apolipoprotein E (APOE) gene. The APOE gene is involved in making a protein that helps carry cholesterol and other types of fat in the bloodstream. Problems in this process are thought to contribute to the development of Alzheimer’s. APOE comes in several forms, called alleles (e.g., $\epsilon2, \epsilon3$).
-
 As the population ages, the incidence of Alzheimer's disease continues to rise. It is estimated that by 2030, there will be 78 million people suffering from dementia worldwide, and by 2050, there will be 139 million patients. This will put huge pressure on the medical system and social resources. Therefore, early identification and judgment of disease risk is not only crucial for patients and their families to better deal with the disease, but also contributes to a more rational allocation of medical resources in the society. Given its widespread impact, prevention and early identification of the disease are particularly important.
 
-This article selects a data set on Alzheimer’s Diagnosis’ (Ankit 2025) on Kaggle.com on Feb. 6, 2025 to analyze. This data set was created by Ankush Panday. This data was released under the MIT license. According to the kaggle webpage, Panday utilized web scraping techniques to collect the data from two health reports in 2023 and will be updated on an annual basis. This means that the data may come from public health databases, research papers, or online resources of government or medical institutions, rather than from surveys or experiments. There is no missing data or duplicate values found.
+This article selects a data set on Alzheimer's Diagnosis' (Ankit 2025) on Kaggle.com on Feb. 6, 2025 to analyze. This data set was created by Ankush Panday. This data was released under the MIT license. According to the kaggle webpage, Panday utilized web scraping techniques to collect the data from two health reports in 2023 and will be updated on an annual basis. This means that the data may come from public health databases, research papers, or online resources of government or medical institutions, rather than from surveys or experiments. There is no missing data or duplicate values found.
 
-The data set contains 74,283 records and 25 variables, and the intended purpose is to study the factors associated with an Alzheimer’s diagnosis. It includes patients from 20 distinct countries and includes demographic information, health status, lifestyle, socioeconomic background, and genetic factors.
+The data set contains 74,283 records and 25 variables, and the intended purpose is to study the factors associated with an Alzheimer's diagnosis. It includes patients from 20 distinct countries and includes demographic information, health status, lifestyle, socioeconomic background, and genetic factors.
 
-Overall, this data set contains a wide variety of clinical and demographic features that are related to Alzheimer’s diagnosis worldwide, making it suitable for exploring potential risk factors for Alzheimer’s disease and supports data analysis and modeling simulation.
+Overall, this data set contains a wide variety of clinical and demographic features that are related to Alzheimer's diagnosis worldwide, making it suitable for exploring potential risk factors for Alzheimer's disease and supports data analysis and modeling simulation.
 
 The motivation for this research is preventative, to help identify possible lifestyle and genetic indicators of a positive Alzheimer's diagnosis and understand the despairing reality of the disease. By researching age-related brain changes, researchers can better distinguish between normal aging and pathological changes, which is essential for accurate diagnosis and understanding disease mechanisms. Additionally, age influences how individuals respond to medications and treatments, highlighting the importance of studying age-related differences in treatment responses to develop more personalized therapeutic approaches and optimize care for elderly patients. This research is particularly crucial given the shifting global population structure, where many countries are experiencing an aging population with more elderly individuals than younger ones. As life expectancy increases and birth rates decline, the prevalence of age-related diseases like Alzheimer's is expected to rise, placing a greater burden on healthcare systems and society. Furthermore, studying the impact of age on Alzheimer's could help identify early biomarkers and warning signs, paving the way for better diagnostic tools and enabling earlier interventions, when treatments may be more effective in slowing or preventing disease progression. Addressing the challenges posed by an aging population requires a deeper understanding of how age affects Alzheimer's risk, progression, and treatment outcomes.
+
+### Further information about Alzheimer's
+
+One well-known gene that influences Alzheimer's risk is the apolipoprotein E (APOE) gene. The APOE gene is involved in making a protein that helps carry cholesterol and other types of fat in the bloodstream. Problems in this process are thought to contribute to the development of Alzheimer's. APOE comes in several forms, called alleles (e.g., $\epsilon2, \epsilon3$). [What is Alz]
 
 ```{r Librarysetup, include=FALSE}
 library(mgcv)
@@ -48,10 +51,11 @@ library(epitools)
 ```
 
 ```{r DataImport,include=FALSE}
-#setwd("/Users/Bendasilva/Desktop/410_Project")
+setwd("/Users/Bendasilva/Desktop/410_Project")
 
 # NOTE TO BEN: DONT CHANGE THIS PART ON YOURS. THIS IS JUST SO I CAN KNIT
-alzData<-read.csv("../../Project/alzheimers_prediction_Dataset.csv",header = TRUE,sep=",")
+alzData<-read.csv("alzheimers_prediction_Dataset.csv",header = TRUE,sep=",")
+#alzData<-read.csv("../../Project/alzheimers_prediction_Dataset.csv",header = TRUE,sep=",")
 ```
 
 ```{r ColNameChange,include=FALSE}
@@ -124,20 +128,15 @@ GenriskSummary<-summary(alzData$GeneticRisk)
 totalCount<-nrow(alzData)
 ```
 
-*Some interesting statistics about our data:*
+```{=tex}
+\begin{tcolorbox}[colframe=black, colback=gray!10, coltitle=black, title=Some interesting statistics about our data:]
+The total sample size is `r totalCount` individuals, the minimum age of these individuals is: `r minAge` while the maximum age is: `r maxAge`. The mean age is: `r round(meanAge, 3)`
 
-The total sample size is `r totalCount` individuals.
+Individuals with reported family history of Alzheimer's responded: `r Famsummary` *(no, yes)*
 
-The minimum of age is : `r minAge`
-
-The maximum of age is : `r maxAge`
-
-The mean of age is : `r meanAge`
-
-Individuals with reported family history of Alzheimer's responded: `r Famsummary` *(no,yes)*
-
-Individuals tested for the genetic risk factor of the APOE-$\epsilon4$ allele displayed: `r GenriskSummary` *(no,yes)*
-
+Individuals tested for the genetic risk factor of the APOE-$\epsilon4$ allele displayed: `r GenriskSummary` *(no, yes)*
+\end{tcolorbox}
+```
 ```{r FamilyHist,fig.cap="Alzheimer's Diagnosis by Family History\n and Alzheimer's Diagnosis by Genetic Risk",echo=FALSE, fig.show='hold',fig.width=3.5,fig.height=3}
 
 par(mfrow = c(2,2))
@@ -154,7 +153,7 @@ ggplot(family_history_summary, aes(x = FamilyHistory, y = proportion, fill = Alz
   geom_bar(stat = "identity", position = "fill") +
   geom_text(aes(label = label), position = position_fill(vjust = 0.5), size = 5) +
   ylab("Proportion of Diagnosed") +
-  ggtitle("Alzheimer’s Diagnosis by Family History") +
+  ggtitle("Alzheimer’s Diagnosis by \n Family History") +
   theme_minimal()
 
 # Compute proportions for Genetic Risk
@@ -170,33 +169,29 @@ ggplot(genetic_risk_summary, aes(x = GeneticRisk, y = proportion, fill = Alzheim
   geom_bar(stat = "identity", position = "fill") +
   geom_text(aes(label = label), position = position_fill(vjust = 0.5), size = 5) +
   ylab("Proportion of Diagnosed") +
-  ggtitle("Alzheimer’s Diagnosis by Genetic Risk") +
+  ggtitle("Alzheimer’s Diagnosis by \n Genetic Risk") +
   theme_minimal()
 par(mfrow = c(1,1))
 ```
 
 Among all the variables, the regression coefficients of Family History and Genetic Risk were significant (p values were all less than 0.05), indicating that they had strong predictive power in the model, and were therefore further analyzed separately.
 
-Specifically, the diagnosis rate of Alzheimer’s was 51.9% in people with a family history, significantly higher than 36.8% in people without a family history. And in people with genetic risk, the diagnosis rate was 60.6% which was also significantly higher than that of people without genetic risk (36.6%). This result was reflected by the grouped bar chart, showing that the diagnosis rate was higher in people with a family history and genetic risk.
+Specifically, the diagnosis rate of Alzheimer's was 51.9% in people with a family history, significantly higher than 36.8% in people without a family history. And in people with genetic risk, the diagnosis rate was 60.6% which was also significantly higher than that of people without genetic risk (36.6%). This result was reflected by the grouped bar chart, showing that the diagnosis rate was higher in people with a family history and genetic risk.
 
-These results show that Family History and Genetic Risk are important influencing factors of Alzheimer’s risk, and can be used as potential risk indicators to provide support for early screening and risk intervention.
+These results show that Family History and Genetic Risk are important influencing factors of Alzheimer's risk, and can be used as potential risk indicators within models to provide support for early screening and risk intervention.
 
 ### Possible significant variables (Age, Family History, Country, Genetic Risk)
 
-Since the diagnosis rate sees to vary by categorical group, odds ratios and chi-square anova tests are taken to test of statistical significance of these variables.
+Since the diagnosis rate sees to vary by categorical group, odds ratios and chi-square anova tests are taken to test of statistical significance of these variables.[@epitools]
 
 ```{r oddsratio, echo=FALSE, warning=FALSE}
 # Calculate diagnosis rate (proportion of Yes diagnoses)
 alzData <- alzData %>%
   mutate(diagnosis_rate = ifelse(AlzheimerDiagnosis == "Yes", 1, 0))
-
 table_genRisk <- table(alzData$GeneticRisk, alzData$diagnosis_rate)
 table_famHist <- table(alzData$FamilyHistory, alzData$diagnosis_rate)
-
 odds_ratio_genRisk <- oddsratio.wald(table_genRisk)
 odds_ratio_famHist <- oddsratio.wald(table_famHist)
-
-
 # Chi-square test for genetic risk
 GenriskChi<-chisq.test(table_genRisk)
 
@@ -230,7 +225,7 @@ Both genetic risk of the APOE-$\epsilon4$ allele and positive family history sho
 
 It can also be seen with the odds ratio test, an individual with the allele present, has a \~2.67 times chance of being diagnosed with Alzheimer's while individuals with a positive family history of Alzheimer have \~1.86 times the chance of being diagnosed Alzheimer's.
 
-Age group analysis of Alzheimers Diagnosis internationally was summarized in the following graphs:
+**Age group analysis of Alzheimer's Diagnosis internationally was summarized in the following graphs:**
 
 ```{r Plot_country_prop, echo=FALSE,fig.show='hold', fig.width=3.5, fig.height=3}
 # Calculate the average diagnosis rate for each combination of Country and Age Category
@@ -320,9 +315,9 @@ barplot(bar_height, beside = TRUE,
         border = "white")  # Remove bar borders
 ```
 
-An interesting step-function-like relationship was discovered between age and the count of positive diagnoses in the data. This step wise pattern aligns with existing literature, which indicates that the risk of Alzheimer's disease increases significantly after the age of 65. Given this observed trend, B-splines and kernal regression was chosen to approximate the potential non-linear functions, allowing for a more accurate representation of the relationship between age and diagnosis rates.
+An interesting step-function-like relationship was discovered between age and the count of positive diagnoses in the data. This step wise pattern aligns with existing literature, which indicates that the risk of Alzheimer's disease increases significantly after the age of 65. Given this observed trend, B-splines and kernel regression was chosen to approximate the potential non-linear functions, allowing for a more accurate representation of the relationship between age and diagnosis rates.
 
-> *After the age of 65, the risk of developing Alzheimer’s disease doubles approximately every five years, with one in four Canadians over 85 having Alzheimer’s disease.* [@alzCan]
+> *After the age of 65, the risk of developing Alzheimer's disease doubles approximately every five years, with one in four Canadians over 85 having Alzheimer's disease.* [@alzCan]
 
 ## B-Spline Age Model
 
@@ -330,30 +325,16 @@ Using a B-spline model, the relationship between the count of positive diagnoses
 
 A 1st and 3rd degree B-spline are applied to the same knots.
 
-1st degree B-splines are computed by:
-
-$$ B_{i,1}(x)=\frac{(x-t_i)}{t_{i+1}-t_i} 1_{x\exists [t_i,t_{i+1}]} (x) +\frac{(t_{i+2}-x)}{t_{i+2}-t_{i+1}} 1_{x\exists [t_{i+1},t_{i+2}]} (x), i=-1,2,...,k $$
-
-(9.5)(Page 200)\* [@RegGLM]
-
-where as 3rd degree b-splines are calculated recursively using:
-
-$$ B_{i,p}(x)=\frac{(x-t_i)}{t_{i+p}-t_i} B_{i,p-1} (x) +\frac{(t_{i+2}-x)}{t_{i+2}-t_{i+1}} B_{i+1,p-1}  (x), i=-1,2,...,k $$
-
-(9.6)(Page 201)\* [@RegGLM]
-
 ```{r Bspline,cache=TRUE,echo=FALSE}
 #try non-smooth package from john
 bsplineProj<-lm(alzData_countage$Yes_Count~bs(alzData_countage$Age,knots=c( 66,66,76,76),degree=1),data=alzData_countage)
 bsplineProjDeg3<-lm(alzData_countage$Yes_Count~bs(alzData_countage$Age,knots=c( 66,66,66,66,76,76,76,76),degree=3),data=alzData_countage)
-summary(bsplineProj)
-summary(bsplineProjDeg3)
-AIC_bsdeg1 <- AIC(bsplineProj)
-AIC_bsdeg3 <- AIC(bsplineProjDeg3)
+#summary(bsplineProj)
+#summary(bsplineProjDeg3)
 ```
 
 ```{r BsplinePlot, fig.height=3.5, fig.width=3.5,fig.show='hold', echo=FALSE,cache=TRUE}
-plot(alzData_countage$Yes_Count~alzData_countage$Age, data = alzData_countage,pch=16,main="bspline with knots 65 and 75 \n ,deg 1",ylab="Positive diagnosis",xlab="Age")
+plot(alzData_countage$Yes_Count~alzData_countage$Age, data = alzData_countage,pch=16,main="bspline with knots 65 and 75 \n Degree 1",ylab="Positive diagnosis count",xlab="Age")
 pred <- predict(bsplineProj, newdata = data.frame(alzData_countage$Age), interval = "prediction")
 y_fit <- pred[, "fit"]
 upper_pred <- pred[, "upr"]
@@ -361,7 +342,7 @@ lower_pred <- pred[, "lwr"]
 with(data.frame(alzData_countage$Age, y_fit), lines(alzData_countage$Age, y_fit, col=4, lwd=2))
 with(data.frame(alzData_countage$Age, upper_pred), lines(alzData_countage$Age, upper_pred, col="red", lty=2))
 with(data.frame(alzData_countage$Age, lower_pred), lines(alzData_countage$Age, lower_pred, col="red", lty=2))
-plot(alzData_countage$Yes_Count~alzData_countage$Age, data = alzData_countage,pch=16,main="bspline with knots 65 and 75 \n ,deg 3",ylab="Positive diagnosis",xlab="Age")
+plot(alzData_countage$Yes_Count~alzData_countage$Age, data = alzData_countage,pch=16,main="bspline with knots 65 and 75 \n Degree 3",ylab="Positive diagnosis count",xlab="Age")
 pred1 <- predict(bsplineProjDeg3, newdata = data.frame(alzData_countage$Age), interval = "prediction")
 y_fit1 <- pred1[, "fit"]
 upper_pred1 <- pred1[, "upr"]
@@ -373,7 +354,7 @@ with(data.frame(alzData_countage$Age, lower_pred1), lines(alzData_countage$Age, 
 
 The splines model of third degree seems to capture the relationship between age and number of diagnosis well, so it may be better to imagine age as a category in response to diagnosis count.
 
-## Univariate Kernal Regression Model
+## Uni-variate Kernel Regression Model
 
 Trying a non-parametric,kernel regression is used to regressed the diagnosis count with age.
 
@@ -404,29 +385,51 @@ lines(x_fit, y_fit, col = "red", lwd = 2)
 
 The Kernel regression follows a very similar trend to the B-spline model, optimal bandwidth of the kernel was chosen using cross validation. [@np]
 
-AIC value is also calculated but must be calculated differently than that of other models due to non-parametric nature of the model.
+Generalized cross validation is used to compare these three models due to the non-parametric nature of kernel regression. AIC is still calculated and compared for the two linear and polynomial spline models. No AIC is calculated for the kernel regression.
 
-```{r KernalAIC,echo=FALSE}
+```{r GCVscore,echo=FALSE}
+# Kernel Regression: Calculate residuals for Kernel Regression
 residuals_kr <- alzData_countage$Yes_Count - kr_result$mean
-RSS_kr <- sum(residuals_kr^2)
+RSS_kr <- sum(residuals_kr^2)  # Residual Sum of Squares
+# We have the bandwidth from kr_result
+bw_value <- kr_result$bw # Bandwidth value from your kernel regression result
+# Estimate degrees of freedom for Kernel Regression using bandwidth and sample size
 n_kr <- length(alzData_countage$Yes_Count)
-k_kr <- 1  # Number of parameters, often 1 in kernel regression
-# Calculate AIC for Kernel Regression
-AIC_kr <- n_kr * log(RSS_kr / n_kr) + 2 * k_kr
+# A simple way to approximate df for kernel regression using the bandwidth
+df_kr <- n_kr * (bw_value^2) / 2  # This is a heuristic approximation
+# Compute GCV for Kernel Regression
+GCV_kr <- RSS_kr / (1 - df_kr / n_kr)^2
+# For B-Spline (Degree 1)
+residuals_bs1 <- residuals(bsplineProj)
+RSS_bs1 <- sum(residuals_bs1^2)
+df_bs1 <- sum(diag(bsplineProj$qr$qr^2))  # Degrees of freedom for B-Spline model (degree 1)
+n_bs1 <- length(alzData_countage$Yes_Count)
+# For B-Spline (Degree 3)
+residuals_bs3 <- residuals(bsplineProjDeg3)
+RSS_bs3 <- sum(residuals_bs3^2)
+df_bs3 <- sum(diag(bsplineProjDeg3$qr$qr^2))  # Degrees of freedom for B-Spline model (degree 3)
+n_bs3 <- length(alzData_countage$Yes_Count)
+GCV_bs1 <- RSS_bs1 / (1 - df_bs1 / n_bs1)^2
+GCV_bs3 <- RSS_bs3 / (1 - df_bs3 / n_bs3)^2
+# Step 1: Extract AIC values for B-splines (already calculated)
+AIC_bsdeg1 <- AIC(bsplineProj)
+AIC_bsdeg3 <- AIC(bsplineProjDeg3)
+# Now compare the GCV values
+model_comparison <- data.frame(
+  Model = c("Kernel Regression", "B-Spline (Degree 1)", "B-Spline (Degree 3)"),
+  GCV = c(GCV_kr, GCV_bs1, GCV_bs3),
+  AIC = c("", AIC_bsdeg1, AIC_bsdeg3)  # NA for Kernel Regression, since AIC is not applicable
+)
+kable(model_comparison, 
+      col.names = c("Model", "Generalized Cross Validation (GCV)", "AIC"),
+      caption = "Model Comparison: GCV and AIC",
+      align = c("l", "r", "r"),
+      digits = c(0, 4, 4))  # Adjust number of digits as needed
 ```
 
-```{r AIC compare, echo=FALSE, cache=TRUE}
-# Create an empty data frame to store AIC values
-aic_comparison <- data.frame(Model = character(), AIC = numeric(), stringsAsFactors = FALSE)
-# Adding Kernel Regression and B-Splines Models
-aic_comparison <- rbind(aic_comparison, data.frame(Model = "Kernel Regression", AIC = AIC_kr))
-aic_comparison <- rbind(aic_comparison, data.frame(Model = "B-Spline (Degree 1)", AIC = AIC_bsdeg1))
-aic_comparison <- rbind(aic_comparison, data.frame(Model = "B-Spline (Degree 3)", AIC = AIC_bsdeg3))
-# View the AIC comparison table
-print(aic_comparison)
-```
+#### Conclusion for age model analysis:
 
-REPLACE THIS SENTENCE WITH BENS CONCLUSION FROM AIC TABLE.
+The table displays the third degree B-spline with the lowest AIC score but the highest GCV reflecting that it may be over fitting but accurately reflecting the relationship in the data. Since this relationship is a step function in relation to human age within \~15 year range, it makes sense to follow the lower AIC value and assume the B-spline model has the best performance in analyzing response within the range of the knots. The kernel model has the lower GCV reflecting it may be more generalizing model but this claim is difficult to validate due to the naute of the data: it would be difficult to collect >100 years information and also less hard but still a task to compile and compare ages <50.
 
 \newpage
 
@@ -434,7 +437,7 @@ REPLACE THIS SENTENCE WITH BENS CONCLUSION FROM AIC TABLE.
 
 The initial modeling approach applied a linear regression model to predict Alzheimer's diagnosis. However, due to poor performance, logistic and quadratic models were introduced to better capture potential nonlinear relationships. Model selection was based on AIC and BIC, which indicated that the quadratic model outperformed the ordinary logistic model. Consequently, the quadratic model was selected as the foundation for subsequent analysis on BMI.
 
-BMI was identified as a key variable for further modeling. This selection was based on two factors: (1) BMI is a well-distributed continuous variable in the dataset, making it suitable for nonlinear exploration, and (2) previous research has suggested a correlation between BMI and cognitive function in the elderly, which may have physiological implications for Alzheimer’s disease [@kang2021].
+BMI was identified as a key variable for further modeling. This selection was based on two factors: (1) BMI is a well-distributed continuous variable in the dataset, making it suitable for nonlinear exploration, and (2) previous research has suggested a correlation between BMI and cognitive function in the elderly, which may have physiological implications for Alzheimer's disease [@kang2021].
 
 ```{r BMI_diagnosis_plot, include=FALSE,fig.cap="Count of 'Yes' Alzheimer's Diagnosis and Total Sample Size by Age", cache=TRUE}
 data <- alzDataEmily
@@ -455,7 +458,7 @@ ggplot(data_count_bmi, aes(x = BMI)) +
   theme_minimal()
 ```
 
-Visualization of BMI and Alzheimer’s diagnosis revealed slight fluctuations in confirmed cases within the BMI range, particularly at slightly higher intermediate levels. The trend appeared nonlinear, though the fluctuations were not extreme. Based on this pattern, a quadratic model incorporating BMI and its squared term was constructed. The model results indicated a relatively flat parabolic fit, which better captured the local relationship between BMI and confirmed cases than the linear model. However, the quadratic model's flexibility was limited, potentially missing more complex nonlinear trends.
+Visualization of BMI and Alzheimer's diagnosis revealed slight fluctuations in confirmed cases within the BMI range, particularly at slightly higher intermediate levels. The trend appeared nonlinear, though the fluctuations were not extreme. Based on this pattern, a quadratic model incorporating BMI and its squared term was constructed. The model results indicated a relatively flat parabolic fit, which better captured the local relationship between BMI and confirmed cases than the linear model. However, the quadratic model's flexibility was limited, potentially missing more complex nonlinear trends.
 
 ```{r Add.Quad.terms, include=FALSE, cache=TRUE}
 data$Age2 <- data$Age^2
@@ -488,7 +491,7 @@ summary(quad_bmi_model)
 
 To enhance the model's adaptability, B-spline and Generalized Additive Model (GAM) techniques were introduced for further exploration.
 
-Compared to the quadratic model, B-splines provide a more flexible function form by allowing smoothness and curvature control through the degree of the polynomial. The analysis considered degree values of 1 (piecewise linear), 2 (quadratic), and 3 (cubic). The results showed that: when **degree = 1**, the fit resembled segmented linear trends with a relatively stable overall pattern; when **degree = 2 or 3**, a slight upward trend was observed in the lower BMI range (18–22), suggesting some local nonlinear relationships. Although the overall trend was not dramatic, higher-order splines better captured small fluctuations in the data.
+Compared to the quadratic model, B-splines provide a more flexible function form by allowing smoothness and curvature control through the degree of the polynomial. The analysis considered degree values of 1 (piecewise linear), 2 (quadratic), and 3 (cubic). The results showed that: when **degree = 1**, the fit resembled segmented linear trends with a relatively stable overall pattern; when **degree = 2 or 3**, a slight upward trend was observed in the lower BMI range (18--22), suggesting some local nonlinear relationships. Although the overall trend was not dramatic, higher-order splines better captured small fluctuations in the data.
 
 ```{r LM.BMI.Splines, include=FALSE, cache=TRUE}
 bspline_deg1 <- lm(Diagnosis_Yes_Count ~ bs(BMI, knots = c(23, 28), degree = 1), data = data_count_bmi)
@@ -559,7 +562,7 @@ lines(data_count_bmi$BMI, gam_pred10, col = "purple", lwd = 2)
 AIC(quad_bmi_model, bspline_deg1, bspline_deg2, bspline_deg3, gam_k4, gam_k6, gam_k10)
 ```
 
-Although higher degrees of freedom improved visualization, they also increased the risk of over-fitting. Model selection was ultimately guided by AIC and cross-validation (CV) errors. Balancing AIC and CV, the GAM model with k = 6 demonstrated the best stability and predictive performance, making it the most suitable approach for modeling the relationship between BMI and Alzheimer’s diagnosis.
+Although higher degrees of freedom improved visualization, they also increased the risk of over-fitting. Model selection was ultimately guided by AIC and cross-validation (CV) errors. Balancing AIC and CV, the GAM model with k = 6 demonstrated the best stability and predictive performance, making it the most suitable approach for modeling the relationship between BMI and Alzheimer's diagnosis.
 
 ```{r CV_Gam, include=FALSE, cache=TRUE}
 cv_gam_k4 <- cv.glm(data_count_bmi, gam_k4, K = 10)
@@ -572,9 +575,9 @@ cv_results <- data.frame(
 kable(cv_results)
 ```
 
-According to the research results, the dynamic changes in BMI may reveal Alzheimer’s risk better than the value at a single point in time [@kang2021]. Women who experienced a significant decrease in BMI or a large fluctuation in weight within 2-4 years had a significantly increased risk of developing Alzheimer’s. This may be related to physiological mechanisms such as insufficient energy intake, imbalanced hormone levels, and lack of key nutrients caused by weight loss, which in turn induce or accelerate the decline of cognitive function. This finding suggests that a continuous decrease or instability in BMI may be an early manifestation of mild cognitive impairment. Therefore, although the number of confirmed cases at extreme BMI levels is low in analysis, we still need to be vigilant about the potential significance of BMI change trends in early warning of the disease.
+According to the research results, the dynamic changes in BMI may reveal Alzheimer's risk better than the value at a single point in time [@kang2021]. Women who experienced a significant decrease in BMI or a large fluctuation in weight within 2-4 years had a significantly increased risk of developing Alzheimer's. This may be related to physiological mechanisms such as insufficient energy intake, imbalanced hormone levels, and lack of key nutrients caused by weight loss, which in turn induce or accelerate the decline of cognitive function. This finding suggests that a continuous decrease or instability in BMI may be an early manifestation of mild cognitive impairment. Therefore, although the number of confirmed cases at extreme BMI levels is low in analysis, we still need to be vigilant about the potential significance of BMI change trends in early warning of the disease.
 
-In summary, the relationship between BMI and Alzheimer’s risk may not only be nonlinear, but may also be affected by the weight change pattern in the time periods. In predictive modeling and risk intervention, BMI should be considered as an indicator together with age, genetic factors, cognitive ability and other variables to achieve more accurate early identification and prevention of Alzheimer’s. However, results from the quadratic BMI variable in both GLM and GAM models did not find a significant relationship with Alzheimer’s diagnosis. This suggests that while BMI-related features may provide useful insights, additional research is needed to determine their precise role in Alzheimer’s risk assessment.
+In summary, the relationship between BMI and Alzheimer's risk may not only be nonlinear, but may also be affected by the weight change pattern in the time periods. In predictive modeling and risk intervention, BMI should be considered as an indicator together with age, genetic factors, cognitive ability and other variables to achieve more accurate early identification and prevention of Alzheimer's. However, results from the quadratic BMI variable in both GLM and GAM models did not find a significant relationship with Alzheimer's diagnosis. This suggests that while BMI-related features may provide useful insights, additional research is needed to determine their precise role in Alzheimer's risk assessment.
 
 ## Age and Family History Interactions
 
@@ -586,7 +589,7 @@ cv_model_af <- cv.glm(data, model_af, K = 10)
 cv_model_af$delta
 ```
 
-After evaluating the interaction of multiple variables, we found that the interaction term between Age and Family History was borderline significant in the Generalized Linear Model (p = 0.012). This suggests that the effect of age on Alzheimer’s diagnosis may be influenced by family history. To explore this relationship further, we constructed a Generalized Additive Model (GAM) incorporating interaction terms for comparison.
+After evaluating the interaction of multiple variables, we found that the interaction term between Age and Family History was borderline significant in the Generalized Linear Model (p = 0.012). This suggests that the effect of age on Alzheimer's diagnosis may be influenced by family history. To explore this relationship further, we constructed a Generalized Additive Model (GAM) incorporating interaction terms for comparison.
 
 ```{r GAM_A.FH_int, include=FALSE, cache=TRUE}
 set.seed(123)
@@ -610,7 +613,7 @@ model_comparison
 
 In terms of model evaluation, the AIC (83676.97) and cross-validation error (CV = 0.1907) of the GAM model were better than those of the corresponding GLM model (AIC = 84985.45, CV = 0.1943), indicating that GAM performed better in balancing fitting ability and generalization performance.
 
-The results revealed that while the overall trends for individuals with and without family history were similar, the risk of Alzheimer’s diagnosis increased rapidly after age 60 in both groups. However, individuals with a family history exhibited a higher risk between ages 50-60, and their overall risk curve was elevated. This indicates that family history significantly raises early risk levels. The individual regression coefficients of Age and Family History was significant (p \< 0.05) while the interaction term was negligible towards determining an Alzheimers diagnosis, highlighting their strong predictive power in the model. Given their importance, we conducted further analysis on these variables without their interaction.
+The results revealed that while the overall trends for individuals with and without family history were similar, the risk of Alzheimer's diagnosis increased rapidly after age 60 in both groups. However, individuals with a family history exhibited a higher risk between ages 50-60, and their overall risk curve was elevated. This indicates that family history significantly raises early risk levels. The individual regression coefficients of Age and Family History was significant (p \< 0.05) while the interaction term was negligible towards determining an Alzheimers diagnosis, highlighting their strong predictive power in the model. Given their importance, we conducted further analysis on these variables without their interaction.
 
 ## Dylan - Analysis Methods
 
@@ -628,7 +631,7 @@ Here, $R_j^2$ represents the coefficient of determination obtained by regressing
 
 ### Variable Selection
 
-To find a more parsimonious model, three stepwise variable selection methods are performed – each using the same function "step" from the [@MASS] package. The stepwise algorithm iterates through the variables of the model passed into the function along with the direction and extracts and compares the Akaike's Information Criterion (AIC) for each variable to determine an optimal model fitted by maximum likelihood. This value is ultimately used to compare each model of the dataset to analyze how well a model fits. Upon finding an optimal model, that AIC value is recorded in Table \@ref(tab:aic-table) found in the appendix. For the purposes of finding a parsimonious model, we tested all three directions, namely: "both", "forward", and "backward", as we did not know if they would yield similar models or not. Results concluded that the three stepwise variable selection directions did result in the same model. Because of this, only the "forward" selection model will be referenced going forward for no other reason than it was the fastest in computation-time.
+To find a more parsimonious model, three stepwise variable selection methods are performed -- each using the same function "step" from the [@MASS] package. The stepwise algorithm iterates through the variables of the model passed into the function along with the direction and extracts and compares the Akaike's Information Criterion (AIC) for each variable to determine an optimal model fitted by maximum likelihood. This value is ultimately used to compare each model of the dataset to analyze how well a model fits. Upon finding an optimal model, that AIC value is recorded in Table \@ref(tab:aic-table) found in the appendix. For the purposes of finding a parsimonious model, we tested all three directions, namely: "both", "forward", and "backward", as we did not know if they would yield similar models or not. Results concluded that the three stepwise variable selection directions did result in the same model. Because of this, only the "forward" selection model will be referenced going forward for no other reason than it was the fastest in computation-time.
 
 Upon finding an optimal model, that AIC value is recorded in the *[ModelComparison]* Table found in the conclusion. For the purposes of finding a parsimonious model, we tested all three directions, namely: "both", "forward", and "backward", as we did not know if they would yield similar models or not. Results concluded that the three stepwise variable selection directions did result in the same model. Because of this, only the "forward" selection model will be referenced going forward for no other reason than it was the fastest in computation-time.
 
@@ -824,13 +827,13 @@ kable(log_odds_table,
 
 To further assess the impact of each predictor in the Generalized Additive Model (GAM), we calculated the log-odds ratios of all variables. These values indicate the relative change in the odds of an Alzheimer's diagnosis associated with each predictor. Recall that we found that a flexibility parameter of 34 provided the optimal conditions that maximized the log-odds. This means that the "Age" variable is split into 34 spline components and is shown in the table \@ref(tab:log-odds-gam) in the appendix.
 
-The strongest effects were observed in the spline components of age, particularly in the range of spline components 20–33, where the log-odds exceeded 3.9, with the highest being Age (Spline Component 22) at 4.99. This confirms that age remains the dominant risk factor, with the greatest effect occurring at older ages, aligning with known disease progression trends.
+The strongest effects were observed in the spline components of age, particularly in the range of spline components 20--33, where the log-odds exceeded 3.9, with the highest being Age (Spline Component 22) at 4.99. This confirms that age remains the dominant risk factor, with the greatest effect occurring at older ages, aligning with known disease progression trends.
 
 Among categorical predictors, Genetic Risk (log-odds = 3.77) and Family History (log-odds = 2.37) had the highest influence on Alzheimer's diagnosis, reinforcing the well-established role of genetic predisposition.
 
 Country-level effects also revealed substantial variation in Alzheimer's diagnosis rates. Russia (log-odds = 1.82), India (log-odds = 1.78), and Brazil (log-odds = 1.65) showed significantly higher odds of diagnosis compared to the baseline country, while Canada (log-odds = 0.74), Norway (log-odds = 0.74), and Japan (log-odds = 0.69) exhibited lower odds. These disparities could stem from differences in healthcare access, diagnostic practices, or genetic and environmental factors.
 
-Interestingly, spline components for lower ages (e.g., Spline Component 1–10, log-odds \< 0.35) had negligible effects, suggesting that younger individuals have minimal risk variations. The intercept term (log-odds = 0.34) represents the baseline probability of diagnosis before adjusting for predictors.
+Interestingly, spline components for lower ages (e.g., Spline Component 1--10, log-odds \< 0.35) had negligible effects, suggesting that younger individuals have minimal risk variations. The intercept term (log-odds = 0.34) represents the baseline probability of diagnosis before adjusting for predictors.
 
 A complete table of log-odds ratios is provided in the appendix \@ref(tab:log-odds-gam). These results underscore the importance of age, genetic risk, and geographic factors in predicting Alzheimer's, offering valuable insights for targeted risk assessment.
 
