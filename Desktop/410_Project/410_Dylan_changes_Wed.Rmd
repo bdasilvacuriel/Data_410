@@ -1,7 +1,7 @@
 ---
-title: "Investigating Factors Assoicated with Alzheimer's Diagnosis"
+title: "Investigating Factors Associated with Alzheimer's Diagnosis"
+subtitle: 
 author: "Ben daSilva Curiel 35207323 , Dylan Forsythe 47473699 , Yiran Wang 55134043"
-date: "`r Sys.Date()`"
 header-includes:
   - \usepackage{booktabs}
   - \usepackage{longtable}
@@ -16,13 +16,9 @@ bibliography: references.bib
 
 Alzheimer's disease is a progressive brain disease and the most common cause and type of dementia . Dementia causes a decline in memory and cognitive abilities, and in severe cases can even affect basic functions of daily life. The disease also shortens the lifespan of patients and places long-term physical and mental burdens on patients and their families. More than half of all dementia patients in the world suffer from Alzheimer's disease, and the disease is currently incurable, the interventions only slowing its progression [@2024alz2024].
 
-As the population ages, the incidence of Alzheimer's disease continues to rise. It is estimated that by 2030, there will be 78 million people suffering from dementia worldwide, and by 2050, there will be 139 million patients. This will put huge pressure on the medical system and social resources. Therefore, early identification and judgment of disease risk is not only crucial for patients and their families to better deal with the disease, but also contributes to a more rational allocation of medical resources in the society. Given its widespread impact, prevention and early identification of the disease are particularly important.
+As the population ages, the incidence of Alzheimer's disease continues to rise. It is estimated that by 2030, there will be 78 million people suffering from dementia worldwide, and by 2050, there will be 139 million patients. This will put huge pressure on the medical system and social resources [@2024alz2024]. Therefore, early identification and judgment of disease risk is not only crucial for patients and their families to better deal with the disease, but also contributes to a more rational allocation of medical resources in the society. Given its widespread impact, prevention and early identification of the disease are particularly important.
 
-This article selects a data set on Alzheimer's Diagnosis' [@ankit2025] on Kaggle.com on Feb. 6, 2025 to analyze. This data set was created by Ankush Panday. This data was released under the MIT license. According to the kaggle webpage, Panday utilized web scraping techniques to collect the data from two health reports in 2023 and will be updated on an annual basis. This means that the data may come from public health databases, research papers, or online resources of government or medical institutions, rather than from surveys or experiments. There is no missing data or duplicate values found.
-
-The data set contains 74,283 records and 25 variables, and the intended purpose is to study the factors associated with an Alzheimer's diagnosis. It includes patients from 20 distinct countries and includes demographic information, health status, lifestyle, socioeconomic background, and genetic factors.
-
-Overall, this data set contains a wide variety of clinical and demographic features that are related to Alzheimer's diagnosis worldwide, making it suitable for exploring potential risk factors for Alzheimer's disease and supports data analysis and modeling simulation.
+This article selects a data set on Alzheimer's Diagnosis' [@ankit2025] on Kaggle.com on Feb. 6, 2025 to analyze. This data set was created by Ankush Panday. This data was released under the MIT license. According to the Kaggle webpage, Panday utilized web scraping techniques to collect the data from two health reports in 2023 and will be updated on an annual basis. This means that the data may come from public health databases, research papers, or online resources of government or medical institutions, rather than from surveys or experiments. There is no missing data or duplicate values found.
 
 ## Motivation
 
@@ -125,7 +121,9 @@ GenriskSummary<-summary(alzData$GeneticRisk)
 totalCount<-nrow(alzData)
 ```
 
-\begin{tcolorbox}[colframe=black, colback=gray!10, coltitle=black, title=Some interesting statistics about our data:]
+The data set contains 74,283 records and 25 variables, and the intended purpose is to study the factors associated with an Alzheimer's diagnosis. It includes patients from 20 distinct countries and includes demographic information, health status, lifestyle, socioeconomic background, and genetic factors. Variable types include numerical variables (such as age, BMI, cognitive test scores, education level) and categorical variables (such as gender, smoking status, diabetes, hyper-tension, etc.). Some variables have multi-level classification, for example, ‘DepressionLevel’ is divided into “Low”, “Medium”, “High”, and could be ordered, and some factors are of a binary classification (such as “Yes” or “No” that an individual has diabetes). The distribution of the “Alzheimer’s Diagnosis” column is assumed to be of a binomial distribution because of the binary responses. The following table provides a brief summary of the numerical variables in the data set:
+
+\begin{tcolorbox}[colframe=black, colback=gray!10, coltitle=black, title=Interesting statistics:]
 The total sample size is `r totalCount` individuals, the minimum age of these individuals is: `r minAge` while the maximum age is: `r maxAge`. The mean age is: `r round(meanAge, 3)`
 
 Individuals with reported family history of Alzheimer's responded:
@@ -135,9 +133,7 @@ Individuals tested for the genetic risk factor of the APOE-$\epsilon4$ allele di
 (`r GenriskSummary`) [(No, Yes) respectively]
 \end{tcolorbox}
 
-The apolipoprotein E (APOE) gene is known within the research field of dementia to be a leading identification factor for Alzheimer's. This gene is part of a process in making proteins that helps transport cholesterol and other types of fats within the bloodstream. Problems in the gene's expression are well documented in the contributions of development of Alzheimer's. [@benkhedher2021].
-
-The "Genetic Risk" variable in the data set represents the presence of this gene in an individual.
+The genetic risk factor mentioned above represents the gene known as apolipoprotein E (APOE) and is known within the research field of dementia to be a leading identification factor for Alzheimer's. This gene is part of a process in making proteins that helps transport cholesterol and other types of fats within the bloodstream. Problems in the gene's expression are well documented in the contributions of development of Alzheimer's. [@benkhedher2021]. The values for the "Genetic Risk" column are binary and represent the presence of this gene in an individual.
 
 ```{r FamilyHist,fig.cap="Alzheimer's Diagnosis by Family History\n and Alzheimer's Diagnosis by Genetic Risk",echo=FALSE, fig.show='hold',fig.width=3.5,fig.height=3}
 
@@ -182,11 +178,11 @@ Specifically, the diagnosis rate of Alzheimer's was 51.9% in people with a famil
 
 These results show that Family History and Genetic Risk are important influencing factors of Alzheimer's risk, and can be used as potential risk indicators within models to provide support for early screening and risk intervention.
 
-\newpage
+Overall, this data set contains a wide variety of clinical and demographic features that are related to Alzheimer's diagnosis worldwide, making it suitable for exploring potential risk factors for Alzheimer's disease and supports data analysis and modeling simulation.
 
 ### Analysis of Suspected Variables
 
-Based on the exploration of the dataset and the research from the previously mentioned journals and articles, it is suspected that the possible significant variables associated with Alzheimers are: Age, Family History, and Genetic Risk. Since the data also includes the Country of origin of each individual, an investigation as to how these variables may differ in each Country was conducted. Age group analysis of Alzheimer's Diagnosis internationally was summarized in the following graphs:
+Based on the exploration of the data set and the research from the previously mentioned journals and articles, it is suspected that the possible significant variables associated with Alzheimer's are: Age, Family History, and Genetic Risk. Since the data also includes the Country of origin of each individual, an investigation as to how these variables may differ in each Country was conducted. Age group analysis of Alzheimer's Diagnosis internationally was summarized in the following graphs:
 
 ```{r Plot_country_prop, echo=FALSE,fig.show='hold', fig.width=3.5, fig.height=4.5, warning=FALSE}
 # Calculate the average diagnosis rate for each combination of Country and Age Category
@@ -410,7 +406,7 @@ Overall all three models show a common structure of steps based on age range. Cl
 
 The initial modeling approach applied a linear regression model to predict Alzheimer's diagnosis. However, due to poor performance, logistic and quadratic models were introduced to better capture potential nonlinear relationships. Model selection was based on AIC and BIC, which indicated that the quadratic model outperformed the ordinary logistic model. Consequently, the quadratic model was selected as the foundation for subsequent analysis on BMI.
 
-BMI was identified as a key variable for further modeling. This selection was based on two factors: (1) BMI is a well-distributed continuous variable in the dataset, making it suitable for nonlinear exploration, and (2) previous research has suggested a correlation between BMI and cognitive function in the elderly, which may have physiological implications for Alzheimer's disease [@kang2021].
+BMI was identified as a key variable for further modeling. This selection was based on two factors: (1) BMI is a well-distributed continuous variable in the data set, making it suitable for nonlinear exploration, and (2) previous research has suggested a correlation between BMI and cognitive function in the elderly, which may have physiological implications for Alzheimer's disease [@kang2021].
 
 ```{r BMI_diagnosis_plot, include=FALSE, cache=TRUE, fig.height=4,fig.width=9, fig.align='center'}
 data <- alzDataEmily
@@ -600,7 +596,7 @@ The results revealed that while the overall trends for individuals with and with
 
 # Multivariate Model Analysis
 
-Utilizing the general linear model regression from the [@MASS] package, a saturated logistic regression model was created to provide a benchmark for evaluating the fit for simpler models. The underlying objective is to find the most parsimonious model and identify the variables that explain an Alzheimers Diagnosis.
+Utilizing the general linear model regression from the [@MASS] package, a saturated logistic regression model was created to provide a benchmark for evaluating the fit for simpler models. The underlying objective is to find the most parsimonious model and identify the variables that explain an Alzheimer's Diagnosis.
 
 As many of the variables were converted to factors as a result of them being categorical, the saturated model was 58 predictor variables along with the intercept term. Since there is such a large amount of predictor variables included, we tested for multicollinearity to see if any of the variables had a significant relationship to any other.
 
@@ -614,7 +610,7 @@ Here, $R_j^2$ represents the coefficient of determination obtained by regressing
 
 ### Variable Selection
 
-To find a more parsimonious model, three stepwise variable selection methods are performed -- each using the same function "step" from the MASS [@MASS] package. The stepwise algorithm iterates through the variables of the model passed into the function along with the direction and extracts and compares the Akaike's Information Criterion (AIC) for each variable to determine an optimal model fitted by maximum likelihood. This value is ultimately used to compare each model of the dataset to analyze how well a model fits. For the purposes of finding a parsimonious model, we tested all three directions, namely: "both", "forward", and "backward", as we did not want to assume they would yield similar models. Results concluded that the three stepwise variable selection directions did result in the same model. Because of this, only the "forward" selection model will be referenced going forward for no other reason than it was the fastest in computation-time. Upon finding an optimal model, that AIC value is recorded in Table 5 (found in the conclusion).
+To find a more parsimonious model, three stepwise variable selection methods are performed -- each using the same function "step" from the MASS [@MASS] package. The stepwise algorithm iterates through the variables of the model passed into the function along with the direction and extracts and compares the Akaike's Information Criterion (AIC) for each variable to determine an optimal model fitted by maximum likelihood. This value is ultimately used to compare each model of the data set to analyze how well a model fits. For the purposes of finding a parsimonious model, we tested all three directions, namely: "both", "forward", and "backward", as we did not want to assume they would yield similar models. Results concluded that the three stepwise variable selection directions did result in the same model. Because of this, only the "forward" selection model will be referenced going forward for no other reason than it was the fastest in computation-time. Upon finding an optimal model, that AIC value is recorded in Table 5 (found in the conclusion).
 
 ```{r Full.Log.Reg, include=FALSE, cache=TRUE}
 # Logistic Regression model on all variables
@@ -643,11 +639,11 @@ full_saturated_model.aic <- alz_logit_full$aic
  step_fwd_model.aic <- step.fwd.model$aic
 ```
 
-Once again, the VIF function is used to ensure that no multicollinearly was introduced with the reduction of predictor variables. There was no significant VIF values.
+Once again, the VIF function is used to ensure that no multicollinearity was introduced with the reduction of predictor variables. There was no significant VIF values.
 
-The glm model as determined by the stepwise forward selection method suggests that variables: "Country", "Age", "FamilyHistory", "GeneticRisk", and "UrbanvsRuralLiving" variables provide the "best, optimal" model. The first four listed make some intuitive sense from our understandings of Alzheimer's Disease, however "UrbanvsRuralLiving" is somewhat strange intuitively. In addition, the algorithm that determined this reduced model included this variable even though it showed a borderline significant p-value of 0.0961 which is not less than 0.05 as is the common practice.
+The GLM model as determined by the stepwise forward selection method suggests that variables: "Country", "Age", "FamilyHistory", "GeneticRisk", and "UrbanvsRuralLiving" variables provide the "best, optimal" model. The first four listed make some intuitive sense from our understandings of Alzheimer's Disease, however "UrbanvsRuralLiving" is somewhat strange intuitively. In addition, the algorithm that determined this reduced model included this variable even though it showed a borderline significant p-value of 0.0961 which is not less than 0.05 as is the common practice.
 
-To further investigate this peculiarity, a statistical inference method called chi-squared testing found in the class textbook [@RegressionGLM] of section 8.3.1, was used on the deviances of the models to assess if a variable can be removed without significantly affecting the model fit. To do this, the change in deviance measures the change between the log likelihood of the saturated model (in this case, the saturated model is the optimal model produced by the stepwise forward selection method) and the log likelihood of a reduced model. The reduced model is the same as the saturated model sans one variable. The deviance of each model was calculated for the purpose of showing the differences between a significant change vs. a non-significant change. If removing a variable results in a large increase in deviance (and a small p-value less than 0.05 to show significance), it suggests that the variable plays an important role in the model fit. If this is not the case, the variable can be removed without significantly affecting the model fit.
+To further investigate this peculiarity, a statistical inference method called chi-squared testing found in the class textbook [@RegressionGLM] of section 8.3.1, was used on the deviance's of the models to assess if a variable can be removed without significantly affecting the model fit. To do this, the change in deviance measures the change between the log likelihood of the saturated model (in this case, the saturated model is the optimal model produced by the stepwise forward selection method) and the log likelihood of a reduced model. The reduced model is the same as the saturated model sans one variable. The deviance of each model was calculated for the purpose of showing the differences between a significant change vs. a non-significant change. If removing a variable results in a large increase in deviance (and a small p-value less than 0.05 to show significance), it suggests that the variable plays an important role in the model fit. If this is not the case, the variable can be removed without significantly affecting the model fit.
 
 Results of deviance tests suggest that removing the Urban vs Rural Living variable from the model would not significantly affect the model fit supported by its p-value being 0.096, which is greater than 0.05.
 
@@ -741,7 +737,7 @@ The results of $\chi^2$ tests suggested that removing the "UrbanvsRuralLiving" v
 
 A QQ-plot of the residuals of the resulting reduced model allows for the assessment of whether the deviance residuals follow a standard normal distribution. We found that the residuals strongly deviated from the linear normal assumption at the tail-end of the model indicating that the model is not capturing some pattern(s) in the data.
 
-```{r Reduced.model.check, echo=FALSE, cache=TRUE, fig.align='center', fig.height=3}
+```{r Reduced.model.check, echo=FALSE, cache=TRUE, fig.align='center', fig.height=3.25}
 ## Fit reduced model
 alz_logit_reduced <- glm(AlzheimerDiagnosis~ 
                    Country+ Age+ FamilyHistory+ GeneticRisk
@@ -822,7 +818,7 @@ This analysis sought to model the probability of an Alzheimer’s diagnosis usin
 
 Initial analyses suggested a borderline significant interaction between Age and Family History in the GLM, prompting further investigation using GAMs. The GAM confirmed that while the overall risk trends for individuals with and without a family history of Alzheimer's were similar, those with a family history exhibited an elevated risk between the ages of 50–60, with a sharp increase after age 60. These findings support the notion that a persons age and their family history significantly raises early risk levels, even though the interaction term itself did not contribute meaningfully to model performance.
 
-A saturated logistic regression model was used as a baseline for multivariate analysis, with 58 predictors included. Multicollinearity was ruled out via VIF analysis, with all values below 2. To improve model parsimony, stepwise selection using AIC identified a reduced model including Country, Age, Family History, Genetic Risk, and Urban vs. Rural Living. However, further deviance testing showed that the Urban vs. Rural Living variable could be removed without a significant loss in model fit. This suggested that geographic living environment had minimal predictive power for Alzheimer’s diagnosis in this dataset.
+A saturated logistic regression model was used as a baseline for multivariate analysis, with 58 predictors included. Multicollinearity was ruled out via VIF analysis, with all values below 2. To improve model parsimony, stepwise selection using AIC identified a reduced model including Country, Age, Family History, Genetic Risk, and Urban vs. Rural Living. However, further deviance testing showed that the Urban vs. Rural Living variable could be removed without a significant loss in model fit. This suggested that geographic living environment had minimal predictive power for Alzheimer’s diagnosis in this data set.
 
 The final reduced GLM showed signs of model misspecification, particularly in the tails of the deviance residuals. This indicated the presence of non-linear relationships, most notably involving Age. To address this, a GAM was fitted using cubic regression splines on Age. A flexibility parameter of k = 34 yielded an ideal scale estimate of 1, suggesting an optimal balance between over- and under-fitting.
 
@@ -874,6 +870,12 @@ kable(log_odds_table,
    kable_styling(bootstrap_options = c("striped", "condensed", "responsive"), 
                  full_width = FALSE)
 ```
+
+### Acknowledgements
+
+We would like to express sincere gratitude to Dr. John R.J. Thompson for their guidance, support, and valuable feedback throughout the course of this project. Their expertise and encouragement were instrumental in shaping the direction of our analysis.
+
+ChatGPT [@chatgpt], developed by OpenAI, was used in the preparation of this report to assist with drafting explanations, rephrasing text for clarity, and organizing sections. All analytical decisions, interpretations, and conclusions are solely our own.
 
 \newpage
 
