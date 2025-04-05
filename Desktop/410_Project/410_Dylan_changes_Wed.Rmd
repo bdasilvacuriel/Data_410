@@ -355,7 +355,7 @@ plot(alzDataAge$Age, alzDataAge$Yes_Count,
 lines(x_fit, y_fit, col = "red", lwd = 2)
 ```
 
-The Kernel regression follows a very similar trend to the B-spline model. It's slopes between the 65 and 75 age group seem more smooth than those from the B-splines which is expected based on model assumptions. Higher in the data (after 75), the kernel model displays it's flexibility fitting the data over the spline models.
+The Kernel regression follows a very similar trend to the B-spline model. It's slope between the 65 and 75 age group seems more smooth than those from the B-splines,which we're almost vertical, this smoothness is expected based on model assumptions. Higher in the data (after 75), the kernel model displays it's flexibility in fitting the data more accurately than the spline models.
 
 Generalized cross validation is used to compare these three models due to the non-parametric nature of kernel regression. AIC is still calculated and compared for the two linear and polynomial spline models. No AIC is calculated for the kernel regression.
 
@@ -399,9 +399,9 @@ kable(model_comparison,
       digits = c(0, 4, 4))  # Adjust number of digits as needed
 ```
 
-In summary, the table displays the third degree B-spline with the lowest AIC score but the highest GCV reflecting that it may be over fitting but accurately reflecting the relationship in the data. Since this relationship is a step function in relation to human age within \~15 year range, it makes sense to follow the lower AIC value and assume the B-spline model has the best performance in analyzing response within the range of the knots. The kernel model has the lower GCV reflecting it may be more generalizing model but this claim is difficult to validate due to the nature of the data: it would be difficult to collect \>100 years information and also less hard but still a task to compile and compare ages \<50.
+In summary, the table displays the third degree B-spline with the lowest AIC score but the highest GCV reflecting that it may be over fitting but accurately reflecting the relationship in the data. Since this relationship is a step function in relation to human age within \~15 year range, it makes sense to follow the lower AIC value and assume the B-spline model has the best performance in analyzing response within the range of the knots. The kernel model has the lower GCV reflecting it may be better at generalizing than other models but this claim is difficult to validate on ages outside the data's age range due to the nature of the data: it would be difficult to collect individuals over the age of \>100 years information and also less hard but still a task to compile and compare ages individuals of age \<50.
 
-Overall all three models show a common structure of steps based on age range. Clearly age is significantly related to an Alzheimer's diagnosis and also clearly the diagnosis rate goes up with age.
+Overall all three models show a common structure of steps based on age range. Clearly age is significantly related to an Alzheimer's diagnosis and also clearly the diagnosis rate goes up with age in noticable jumps after the age of \~65.
 
 ## Quadratic Model Analysis of Body Mass Index and Alzheimer's
 
