@@ -44,11 +44,11 @@ library(epitools)
 ```
 
 ```{r DataImport,include=FALSE}
-#setwd("/Users/Bendasilva/Desktop/410_Project")
+setwd("/Users/Bendasilva/Desktop/410_Project")
 
 # NOTE TO BEN: DONT CHANGE THIS PART ON YOURS. THIS IS JUST SO I CAN KNIT
 #alzData<-read.csv("alzheimers_prediction_Dataset.csv",header = TRUE,sep=",")
-alzData<-read.csv("../../Project/alzheimers_prediction_Dataset.csv",header = TRUE,sep=",")
+alzData<-read.csv("alzheimers_prediction_Dataset.csv",header = TRUE,sep=",")
 ```
 
 ```{r ColNameChange,include=FALSE}
@@ -121,8 +121,9 @@ GenriskSummary<-summary(alzData$GeneticRisk)
 totalCount<-nrow(alzData)
 ```
 
-The data set contains 74,283 records and 25 variables, and the intended purpose is to study the factors associated with an Alzheimer's diagnosis. It includes patients from 20 distinct countries and includes demographic information, health status, lifestyle, socioeconomic background, and genetic factors. Variable types include numerical variables (such as age, BMI, cognitive test scores, education level) and categorical variables (such as gender, smoking status, diabetes, hyper-tension, etc.). Some variables have multi-level classification, for example, ‘DepressionLevel’ is divided into “Low”, “Medium”, “High”, and could be ordered, and some factors are of a binary classification (such as “Yes” or “No” that an individual has diabetes). The distribution of the “Alzheimer’s Diagnosis” column is assumed to be of a binomial distribution because of the binary responses. The following table provides a brief summary of the numerical variables in the data set:
+The data set contains 74,283 records and 25 variables, and the intended purpose is to study the factors associated with an Alzheimer's diagnosis. It includes patients from 20 distinct countries and includes demographic information, health status, lifestyle, socioeconomic background, and genetic factors. Variable types include numerical variables (such as age, BMI, cognitive test scores, education level) and categorical variables (such as gender, smoking status, diabetes, hyper-tension, etc.). Some variables have multi-level classification, for example, 'DepressionLevel' is divided into "Low", "Medium", "High", and could be ordered, and some factors are of a binary classification (such as "Yes" or "No" that an individual has diabetes). The distribution of the "Alzheimer's Diagnosis" column is assumed to be of a binomial distribution because of the binary responses. The following table provides a brief summary of the numerical variables in the data set:
 
+```{=tex}
 \begin{tcolorbox}[colframe=black, colback=gray!10, coltitle=black, title=Interesting statistics:]
 The total sample size is `r totalCount` individuals, the minimum age of these individuals is: `r minAge` while the maximum age is: `r maxAge`. The mean age is: `r round(meanAge, 3)`
 
@@ -132,7 +133,7 @@ Individuals with reported family history of Alzheimer's responded:
 Individuals tested for the genetic risk factor of the APOE-$\epsilon4$ allele displayed: 
 (`r GenriskSummary`) [(No, Yes) respectively]
 \end{tcolorbox}
-
+```
 The genetic risk factor mentioned above represents the gene known as apolipoprotein E (APOE) and is known within the research field of dementia to be a leading identification factor for Alzheimer's. This gene is part of a process in making proteins that helps transport cholesterol and other types of fats within the bloodstream. Problems in the gene's expression are well documented in the contributions of development of Alzheimer's. [@benkhedher2021]. The values for the "Genetic Risk" column are binary and represent the presence of this gene in an individual.
 
 ```{r FamilyHist,fig.cap="Alzheimer's Diagnosis by Family History\n and Alzheimer's Diagnosis by Genetic Risk",echo=FALSE, fig.show='hold',fig.width=3.5,fig.height=3}
@@ -814,15 +815,15 @@ A complete table of log-odds ratios (Table 6) is provided in the appendix. These
 
 ## Conclusion
 
-This analysis sought to model the probability of an Alzheimer’s diagnosis using a variety of demographic, behavioral, and genetic predictors, with a particular focus on the roles of age and family history. Through both generalized linear models (GLMs) and generalized additive models (GAMs), we aimed to identify the most parsimonious yet informative model to describe the risk factors associated with Alzheimer’s disease.
+This analysis sought to model the probability of an Alzheimer's diagnosis using a variety of demographic, behavioral, and genetic predictors, with a particular focus on the roles of age and family history. Through both generalized linear models (GLMs) and generalized additive models (GAMs), we aimed to identify the most parsimonious yet informative model to describe the risk factors associated with Alzheimer's disease.
 
-Initial analyses suggested a borderline significant interaction between Age and Family History in the GLM, prompting further investigation using GAMs. The GAM confirmed that while the overall risk trends for individuals with and without a family history of Alzheimer's were similar, those with a family history exhibited an elevated risk between the ages of 50–60, with a sharp increase after age 60. These findings support the notion that a persons age and their family history significantly raises early risk levels, even though the interaction term itself did not contribute meaningfully to model performance.
+Initial analyses suggested a borderline significant interaction between Age and Family History in the GLM, prompting further investigation using GAMs. The GAM confirmed that while the overall risk trends for individuals with and without a family history of Alzheimer's were similar, those with a family history exhibited an elevated risk between the ages of 50--60, with a sharp increase after age 60. These findings support the notion that a persons age and their family history significantly raises early risk levels, even though the interaction term itself did not contribute meaningfully to model performance.
 
-A saturated logistic regression model was used as a baseline for multivariate analysis, with 58 predictors included. Multicollinearity was ruled out via VIF analysis, with all values below 2. To improve model parsimony, stepwise selection using AIC identified a reduced model including Country, Age, Family History, Genetic Risk, and Urban vs. Rural Living. However, further deviance testing showed that the Urban vs. Rural Living variable could be removed without a significant loss in model fit. This suggested that geographic living environment had minimal predictive power for Alzheimer’s diagnosis in this data set.
+A saturated logistic regression model was used as a baseline for multivariate analysis, with 58 predictors included. Multicollinearity was ruled out via VIF analysis, with all values below 2. To improve model parsimony, stepwise selection using AIC identified a reduced model including Country, Age, Family History, Genetic Risk, and Urban vs. Rural Living. However, further deviance testing showed that the Urban vs. Rural Living variable could be removed without a significant loss in model fit. This suggested that geographic living environment had minimal predictive power for Alzheimer's diagnosis in this data set.
 
 The final reduced GLM showed signs of model misspecification, particularly in the tails of the deviance residuals. This indicated the presence of non-linear relationships, most notably involving Age. To address this, a GAM was fitted using cubic regression splines on Age. A flexibility parameter of k = 34 yielded an ideal scale estimate of 1, suggesting an optimal balance between over- and under-fitting.
 
-The GAM revealed a clear non-linear effect of age, with sharp increases in log-odds of diagnosis occurring around ages 66 and 76 —aligning with medical literature on late-onset Alzheimer’s. Among categorical predictors, Genetic Risk (log-odds = 3.77) and Family History (log-odds = 2.37) showed the highest influence. Notably, country-specific effects revealed that individuals from Russia, India, and Brazil had considerably higher odds of diagnosis, potentially reflecting differences in healthcare access, genetic factors, or diagnostic practices.
+The GAM revealed a clear non-linear effect of age, with sharp increases in log-odds of diagnosis occurring around ages 66 and 76 ---aligning with medical literature on late-onset Alzheimer's. Among categorical predictors, Genetic Risk (log-odds = 3.77) and Family History (log-odds = 2.37) showed the highest influence. Notably, country-specific effects revealed that individuals from Russia, India, and Brazil had considerably higher odds of diagnosis, potentially reflecting differences in healthcare access, genetic factors, or diagnostic practices.
 
 ```{r AIC.table,echo=FALSE,cache=TRUE}
  
@@ -856,7 +857,7 @@ The GAM revealed a clear non-linear effect of age, with sharp increases in log-o
 
 From the models and their respective AIC values that were created for this report, the one that captured the data and provided the strongest fit that lead to our conclusions was the GAM model that incorporated b-splines on "Age" because it had the lowest AIC value of 78140.18. Overall, the GAM improves model flexibility by capturing the non-linear age effect while still incorporating key categorical predictors. The adjusted R² value of 0.27 and deviance explained of 22.5% indicate a moderate fit, suggesting that while age and the included predictors are important, other factors that could be investigated are key genetic marker mutations in Alzheimer's patients, or other neurological-related variables might provide a stronger model for Alzheimer's detection.
 
-The results of our analysis could benefit a range of stakeholders in both healthcare and public policy. Clinicians and medical researchers can use these insights to identify high-risk individuals—particularly those with a family history or genetic predisposition—and prioritize early screening or intervention strategies. Public health officials may also leverage these findings to tailor awareness campaigns and allocate resources more effectively in regions with elevated risk profiles. Additionally, the identification of non-linear age-related risk patterns can inform the development of age-targeted diagnostic tools and preventive programs, ultimately supporting efforts to delay the onset or progression of Alzheimer’s disease.
+The results of our analysis could benefit a range of stakeholders in both healthcare and public policy. Clinicians and medical researchers can use these insights to identify high-risk individuals---particularly those with a family history or genetic predisposition---and prioritize early screening or intervention strategies. Public health officials may also leverage these findings to tailor awareness campaigns and allocate resources more effectively in regions with elevated risk profiles. Additionally, the identification of non-linear age-related risk patterns can inform the development of age-targeted diagnostic tools and preventive programs, ultimately supporting efforts to delay the onset or progression of Alzheimer's disease.
 
 \newpage
 
